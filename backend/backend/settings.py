@@ -35,11 +35,14 @@ INSTALLED_APPS = [
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
+    'django.contrib.sites',
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'corsheaders',
     'rest_framework',
+    'rest_framework_simplejwt',
     'books',
+    'users',
 ]
 
 MIDDLEWARE = [
@@ -53,7 +56,30 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
 ]
 
+CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS = True
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",  # ✅ Ensure React frontend can make requests
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",  # ✅ Allow React frontend to send CSRF tokens
+]
+
+# JWT Authentication settings
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
+
+AUTHENTICATION_BACKENDS = [
+    'users.backends.CustomAuthBackend',  # ✅ Custom authentication (allows username & email)
+    'django.contrib.auth.backends.ModelBackend',  # ✅ Default authentication
+]
+
+
 
 ROOT_URLCONF = 'backend.urls'
 
@@ -81,11 +107,21 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'booksera',  
+        'USER': 'postgres',
+        'PASSWORD': 'root',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 
+AUTH_USER_MODEL = "users.CustomUser"
+
+SESSION_ENGINE = "django.contrib.sessions.backends.db"  # Store sessions in PostgreSQL
+SESSION_COOKIE_SECURE = True  # Ensures cookies are sent over HTTPS
+SESSION_COOKIE_HTTPONLY = True  # Prevents JavaScript access to session cookies
+SESSION_COOKIE_AGE = 86400 
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -127,3 +163,4 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+

@@ -3,25 +3,27 @@ import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 function Signup() {
-  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState(""); // New field
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const handleSignup = async (e) => {
     e.preventDefault();
+    setError("");
+
     try {
       await axios.post("http://127.0.0.1:8000/api/signup/", {
-        username,
         email,
+        username, // Send username
         password,
       });
 
       alert("Signup successful! Please log in.");
       navigate("/login");
-    } catch (error) {
-      console.error("Signup failed:", error.response?.data || error.message);
-      alert("Signup failed!");
+    } catch (err) {
+      setError(err.response?.data?.error || "Signup failed!");
     }
   };
 
@@ -29,6 +31,7 @@ function Signup() {
     <div className="h-screen flex items-center justify-center bg-gray-100">
       <div className="w-96 bg-white p-6 rounded-lg shadow-lg">
         <h2 className="text-2xl font-semibold text-center mb-4">Sign Up</h2>
+        {error && <p className="text-red-500 text-center">{error}</p>}
         <form onSubmit={handleSignup}>
           <input
             type="text"
