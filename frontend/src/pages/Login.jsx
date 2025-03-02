@@ -13,21 +13,20 @@ function Login() {
     setError("");
 
     try {
-      const response = await axios.post("http://127.0.0.1:8000/api/login/", {
-        identifier, // ✅ Ensure we're sending "identifier" (not email)
-        password,
-      }, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-        withCredentials: true, // ✅ Ensure cookies (session) are sent
-      });
-
-      localStorage.setItem("token", response.data.token);
+      const response = await axios.post(
+        "http://localhost:8000/api/login/",
+        { identifier, password },
+        {
+          headers: { "Content-Type": "application/json" },
+          withCredentials: true, // Send cookies
+        }
+      );
+      console.log("Login Success:", response.data);
       alert("Login successful!");
       navigate("/home");
     } catch (err) {
       setError(err.response?.data?.error || "Invalid credentials!");
+      console.error("Login error:", err.response);
     }
   };
 

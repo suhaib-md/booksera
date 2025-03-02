@@ -11,6 +11,16 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import environ
+import os
+
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+env = environ.Env()
+environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
+GOOGLE_BOOKS_API_KEY = env("GOOGLE_BOOKS_API_KEY")
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -46,6 +56,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -53,7 +64,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -119,9 +129,15 @@ DATABASES = {
 AUTH_USER_MODEL = "users.CustomUser"
 
 SESSION_ENGINE = "django.contrib.sessions.backends.db"  # Store sessions in PostgreSQL
-SESSION_COOKIE_SECURE = True  # Ensures cookies are sent over HTTPS
-SESSION_COOKIE_HTTPONLY = True  # Prevents JavaScript access to session cookies
-SESSION_COOKIE_AGE = 86400 
+SESSION_COOKIE_NAME = "sessionid"
+SESSION_COOKIE_SECURE = False 
+SESSION_COOKIE_HTTPONLY = False 
+SESSION_COOKIE_SAMESITE = "Lax"  # Change from "None" to "Lax" for simplicity in developmentSESSION_COOKIE_AGE = 86400 
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_COOKIE_DOMAIN = "localhost"
+CSRF_COOKIE_DOMAIN = "localhost"
+CSRF_COOKIE_SAMESITE = "Lax"    # Add this to match
+CSRF_COOKIE_SECURE = False      # Add this for development
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
