@@ -10,3 +10,4 @@ urlpatterns = [
     path("profile/", get_user_profile, name="user_profile"),
     path("profile/update/", update_user_profile, name="update_profile"),
     path("profile/upload/", upload_profile_picture, name="upload_profile_picture"),]
+

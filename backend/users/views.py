@@ -9,6 +9,10 @@ from .models import CustomUser
 from django.contrib.sessions.models import Session
 import random
 from .models import UserPreferences, CustomUser
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+from django.conf import settings
+
 
 @csrf_exempt
 def signup(request):
@@ -88,15 +92,21 @@ def logout_view(request):
         logout(request)
         return JsonResponse({"message": "Logout successful"}, status=200)
     return JsonResponse({"error": "Method not allowed"}, status=405)
+
 # Get User Profile
 @login_required
 def get_user_profile(request):
     user = request.user
+    profile_picture_url = None
+
+    if user.profile_picture:
+        profile_picture_url = request.build_absolute_uri(settings.MEDIA_URL + str(user.profile_picture))
+
     return JsonResponse({
         "username": user.username,
         "email": user.email,
         "bio": user.bio,
-        "profile_picture": user.profile_picture.url if user.profile_picture else None,
+        "profile_picture": profile_picture_url,  # Ensure full URL is returned
         "favorite_genres": user.favorite_genres,
         "favorite_authors": user.favorite_authors,
         "books_read": user.books_read,
@@ -132,10 +142,15 @@ def upload_profile_picture(request):
         filename = f"profile_pictures/{user.id}_{image.name}"
         path = default_storage.save(filename, ContentFile(image.read()))
 
+        # Ensure user.profile_picture is stored as the relative path
         user.profile_picture = path
         user.save()
 
-        return JsonResponse({"message": "Profile picture updated!", "profile_picture": user.profile_picture.url})
+        # Construct full URL
+        image_url = f"{settings.MEDIA_URL}{user.profile_picture}"
+
+        return JsonResponse({"message": "Profile picture updated!", "profile_picture": image_url})
+    
     return JsonResponse({"error": "Invalid request"}, status=400)
 
 @csrf_exempt

@@ -19,6 +19,8 @@ from django.urls import path, include
 from django.http import JsonResponse
 from users.views import get_user_data, unauthorized
 from books.views import get_recommendations
+from django.conf import settings
+from django.conf.urls.static import static
 
 def home(request):
     return JsonResponse({"message": "Welcome to BooksEra Backend!"})
@@ -31,3 +33,6 @@ urlpatterns = [
     path('api/unauthorized/', unauthorized, name="unauthorized"),
     path('api/recommendations/', get_recommendations, name='recommendations'),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
