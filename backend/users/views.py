@@ -8,7 +8,7 @@ from django.utils.decorators import method_decorator
 from .models import CustomUser
 from django.contrib.sessions.models import Session
 import random
-from .models import UserPreferences, CustomUser
+from .models import UserPreferences, CustomUser, Bookshelf
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.conf import settings
@@ -176,4 +176,96 @@ def update_preferences(request):
         except json.JSONDecodeError:
             return JsonResponse({"error": "Invalid JSON format"}, status=400)
 
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+@csrf_exempt
+@login_required
+def add_to_bookshelf(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            book_id = data.get("book_id")
+            title = data.get("title")
+            authors = data.get("authors", "")
+            image = data.get("image", "")
+            status = data.get("status", "to_read")
+
+            if not book_id or not title:
+                return JsonResponse({"error": "Book ID and title are required"}, status=400)
+
+            bookshelf_item, created = Bookshelf.objects.get_or_create(
+                user=request.user,
+                book_id=book_id,
+                defaults={
+                    "title": title,
+                    "authors": authors,
+                    "image": image,
+                    "status": status
+                }
+            )
+
+            if not created:
+                return JsonResponse({"error": "Book already in bookshelf"}, status=400)
+
+            # Update books_read if status is 'read'
+            if status == "read" and book_id not in request.user.books_read:
+                request.user.books_read.append(book_id)
+                request.user.save()
+
+            return JsonResponse({"message": "Book added to bookshelf"}, status=201)
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+@login_required
+def get_bookshelf(request):
+    bookshelf_items = Bookshelf.objects.filter(user=request.user)
+    to_read = []
+    read = []
+
+    for item in bookshelf_items:
+        book_data = {
+            "id": item.book_id,
+            "title": item.title,
+            "authors": item.authors,
+            "image": item.image,
+        }
+        if item.status == "to_read":
+            to_read.append(book_data)
+        elif item.status == "read":
+            read.append(book_data)
+
+    return JsonResponse({"to_read": to_read, "read": read})
+
+@csrf_exempt
+@login_required
+def update_bookshelf_status(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            book_id = data.get("book_id")
+            new_status = data.get("status")
+
+            if not book_id or not new_status:
+                return JsonResponse({"error": "Book ID and status are required"}, status=400)
+
+            try:
+                bookshelf_item = Bookshelf.objects.get(user=request.user, book_id=book_id)
+                old_status = bookshelf_item.status
+                bookshelf_item.status = new_status
+                bookshelf_item.save()
+
+                # Update books_read field accordingly
+                if new_status == "read" and book_id not in request.user.books_read:
+                    request.user.books_read.append(book_id)
+                    request.user.save()
+                elif new_status == "to_read" and book_id in request.user.books_read:
+                    request.user.books_read.remove(book_id)
+                    request.user.save()
+
+                return JsonResponse({"message": "Bookshelf status updated"}, status=200)
+            except Bookshelf.DoesNotExist:
+                return JsonResponse({"error": "Book not found in bookshelf"}, status=404)
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
     return JsonResponse({"error": "Method not allowed"}, status=405)

@@ -1,16 +1,22 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import { AuthProvider } from "./components/AuthContext"; // Import AuthProvider
 import Navbar from "./components/Navbar";
+import ErrorBoundary from "./components/ErrorBoundary";
 import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Home from "./pages/Home";
 import Profile from "./pages/Profile";
+import Bookshelf from "./pages/Bookshelf";
+import Search from "./pages/Search";  
 
 function App() {
   return (
-    <Router>
-      <AppContent />
-    </Router>
+    <AuthProvider> {/* Wrap with AuthProvider */}
+      <Router>
+        <AppContent />
+      </Router>
+    </AuthProvider>
   );
 }
 
@@ -19,13 +25,17 @@ function AppContent() {
   return (
     <>
       {location.pathname !== "/" && <Navbar />}
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/home" element={<Home />} />
-        <Route path="/profile" element={<Profile />} />
-      </Routes>
+      <ErrorBoundary>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/home" element={<Home />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/bookshelf" element={<Bookshelf />} />
+          <Route path="/search" element={<Search />} />
+        </Routes>
+      </ErrorBoundary>
     </>
   );
 }

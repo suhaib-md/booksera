@@ -29,9 +29,7 @@ urlpatterns = [
     path('', home),
     path('admin/', admin.site.urls),
     path('api/', include('users.urls')),
-    path('api/user/', get_user_data, name="get_user_data"),
-    path('api/unauthorized/', unauthorized, name="unauthorized"),
-    path('api/recommendations/', get_recommendations, name='recommendations'),
+    path('', include('books.urls')),
 ]
 
 if settings.DEBUG:

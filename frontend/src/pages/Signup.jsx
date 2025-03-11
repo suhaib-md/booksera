@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
+import { useAuth } from "../components/AuthContext"; // Import AuthContext
 
 function Signup() {
   const [email, setEmail] = useState("");
-  const [username, setUsername] = useState(""); // New field
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { login } = useAuth(); // Use login from AuthContext
 
   const handleSignup = async (e) => {
     e.preventDefault();
@@ -16,12 +17,12 @@ function Signup() {
     try {
       await axios.post("http://localhost:8000/api/signup/", {
         email,
-        username, // Send username
+        username,
         password,
       });
-
-      alert("Signup successful! Please log in.");
-      navigate("/login");
+      // After signup, automatically log the user in
+      await login({ identifier: email, password });
+      navigate("/home"); // Redirect to home after signup and login
     } catch (err) {
       setError(err.response?.data?.error || "Signup failed!");
     }

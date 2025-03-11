@@ -28,3 +28,22 @@ class UserPreferences(models.Model):
 
     def __str__(self):
         return f"{self.user.username}'s Preferences"
+    
+class Bookshelf(models.Model):
+    STATUS_CHOICES = (
+        ('to_read', 'To Read'),
+        ('read', 'Read'),
+    )
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='bookshelf')
+    book_id = models.CharField(max_length=100)  # Google Books API book ID
+    title = models.CharField(max_length=255)
+    authors = models.CharField(max_length=255, blank=True, null=True)
+    image = models.URLField(blank=True, null=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='to_read')
+    added_date = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'book_id')  # Prevent duplicate entries
+
+    def __str__(self):
+        return f"{self.title} - {self.user.username}"

@@ -1,32 +1,24 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
+import { useAuth } from "../components/AuthContext"; // Import AuthContext
 
 function Login() {
-  const [identifier, setIdentifier] = useState(""); // Can be email or username
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { login } = useAuth(); // Use login from AuthContext
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
 
     try {
-      const response = await axios.post(
-        "http://localhost:8000/api/login/",
-        { identifier, password },
-        {
-          headers: { "Content-Type": "application/json" },
-          withCredentials: true, // Send cookies
-        }
-      );
-      console.log("Login Success:", response.data);
-      alert("Login successful!");
+      await login({ identifier, password });
       navigate("/home");
     } catch (err) {
-      setError(err.response?.data?.error || "Invalid credentials!");
-      console.error("Login error:", err.response);
+      setError("Invalid credentials!");
+      console.error("Login error:", err);
     }
   };
 
