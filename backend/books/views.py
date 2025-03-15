@@ -12,7 +12,9 @@ from numpy import dot
 from numpy.linalg import norm
 import torch
 from collections import defaultdict
+from sklearn.metrics.pairwise import cosine_similarity
 import json
+from sentence_transformers import SentenceTransformer
 
 logger = logging.getLogger(__name__)
 
@@ -513,3 +515,709 @@ def get_recommendation_reason(book, user):
         reasons.append("Matches your reading preferences")
     
     return reasons[0]
+
+# Enhanced mood mapping with more nuanced keywords and weighted aspects
+MOOD_MAPPING = {
+    "happy": {
+        "keywords": ["uplifting", "joyful", "comedy", "humor", "feel-good", "optimistic", "cheerful", "delightful", "amusing"],
+        "genres": ["humor", "comedy", "romance comedy", "light fantasy", "satire", "slice of life"],
+        "tone": ["light", "playful", "cheerful", "upbeat", "warm"],
+        "themes": ["friendship", "success", "personal growth", "overcoming obstacles", "humor", "joy"],
+        "avoid": ["tragedy", "horror", "psychological thriller", "true crime"]
+    },
+    "sad": {
+        "keywords": ["melancholy", "moving", "emotional", "bittersweet", "poignant", "reflective", "sorrow", "grief"],
+        "genres": ["drama", "tragedy", "literary fiction", "memoir", "psychological fiction", "historical drama"],
+        "tone": ["contemplative", "melancholic", "somber", "reflective", "thoughtful"],
+        "themes": ["loss", "redemption", "relationships", "meaning", "memory", "healing", "grief"],
+        "avoid": ["comedy", "parody", "satire", "light romance"]
+    },
+    "inspired": {
+        "keywords": ["motivational", "inspiring", "success", "achievement", "resilience", "purpose", "mindset", "transformation"],
+        "genres": ["self-help", "biography", "business", "personal development", "philosophy", "psychology"],
+        "tone": ["encouraging", "energetic", "confident", "passionate", "authoritative"],
+        "themes": ["overcoming obstacles", "personal growth", "achievement", "purpose", "leadership", "transformation"],
+        "avoid": ["nihilistic", "dystopian", "horror", "cynical"]
+    },
+    "adventurous": {
+        "keywords": ["action", "adventure", "journey", "exploration", "thrill", "quest", "discovery", "expedition"],
+        "genres": ["adventure", "action", "travel", "fantasy", "historical adventure", "science fiction"],
+        "tone": ["fast-paced", "exciting", "suspenseful", "dynamic", "bold"],
+        "themes": ["discovery", "courage", "challenge", "survival", "journey", "exploration", "quest"],
+        "avoid": ["slow-paced", "philosophical treatise", "academic", "slice of life"]
+    },
+    "relaxed": {
+        "keywords": ["cozy", "calm", "peaceful", "gentle", "heartwarming", "serene", "soothing", "tranquil", "comforting"],
+        "genres": ["cozy mystery", "gentle fiction", "nature writing", "slow-paced fiction", "slice of life", "pastoral"],
+        "tone": ["calm", "gentle", "warm", "peaceful", "contemplative", "unhurried"],
+        "themes": ["everyday life", "simple pleasures", "nature", "small communities", "comfort", "harmony"],
+        "avoid": ["suspense", "horror", "violent", "fast-paced thrillers", "dystopian"]
+    },
+    "anxious": {
+        "keywords": ["soothing", "mindfulness", "calming", "stress-relief", "reassuring", "grounding", "centering", "therapeutic"],
+        "genres": ["meditation", "self-help", "psychology", "mindfulness", "practical philosophy", "nature writing"],
+        "tone": ["calming", "reassuring", "steady", "supportive", "gentle", "structured"],
+        "themes": ["coping", "resilience", "balance", "perspective", "self-care", "mindfulness", "healing"],
+        "avoid": ["horror", "suspense", "true crime", "dystopian", "apocalyptic"]
+    },
+    "romantic": {
+        "keywords": ["love", "passion", "romance", "relationship", "affection", "attraction", "intimacy", "devotion", "desire"],
+        "genres": ["romance", "love stories", "contemporary romance", "historical romance", "romantic comedy", "women's fiction"],
+        "tone": ["passionate", "tender", "intimate", "emotional", "warm", "hopeful"],
+        "themes": ["love", "connection", "relationships", "attraction", "commitment", "passion", "romance"],
+        "avoid": ["horror", "gritty crime", "violent thrillers", "dystopian", "nihilistic"]
+    },
+    "curious": {
+        "keywords": ["fascinating", "surprising", "knowledge", "discovery", "intriguing", "thought-provoking", "educational", "revealing"],
+        "genres": ["popular science", "history", "psychology", "educational", "narrative nonfiction", "anthropology", "biography"],
+        "tone": ["inquisitive", "engaging", "informative", "thought-provoking", "accessible", "clear"],
+        "themes": ["discovery", "learning", "understanding", "exploration", "insight", "curiosity", "knowledge"],
+        "avoid": ["purely fictional", "fantasy without substance", "overly simplistic"]
+    },
+    "nostalgic": {
+        "keywords": ["classic", "retro", "memory", "childhood", "reminiscence", "bygone", "timeless", "vintage", "heritage"],
+        "genres": ["historical fiction", "memoir", "classic literature", "coming-of-age", "period drama", "family saga"],
+        "tone": ["reflective", "wistful", "warm", "evocative", "sentimental", "timeless"],
+        "themes": ["memory", "time", "childhood", "heritage", "tradition", "looking back", "history", "family"],
+        "avoid": ["futuristic", "cutting-edge technology", "modern problems", "contemporary issues"]
+    },
+    "scared": {
+        "keywords": ["horror", "thriller", "suspense", "spooky", "supernatural", "eerie", "chilling", "creepy", "terrifying"],
+        "genres": ["horror", "thriller", "supernatural", "mystery", "psychological suspense", "gothic"],
+        "tone": ["suspenseful", "tense", "mysterious", "ominous", "eerie", "foreboding"],
+        "themes": ["fear", "survival", "unknown", "danger", "supernatural", "psychological terror", "suspense"],
+        "avoid": ["light comedy", "heartwarming", "feel-good", "children's books"]
+    },
+    "angry": {
+        "keywords": ["justice", "revenge", "empowerment", "revolution", "outrage", "rebellion", "resistance", "confrontation"],
+        "genres": ["thriller", "social justice", "action", "dystopian", "political fiction", "crime", "revenge stories"],
+        "tone": ["intense", "passionate", "direct", "powerful", "assertive", "unflinching"],
+        "themes": ["justice", "resistance", "empowerment", "conflict", "fighting back", "standing up", "overcoming oppression"],
+        "avoid": ["passive protagonists", "escapist fantasy", "light-hearted comedy", "stories without conflict"]
+    },
+    "bored": {
+        "keywords": ["engrossing", "page-turner", "unputdownable", "gripping", "captivating", "compelling", "fast-paced", "addictive"],
+        "genres": ["thriller", "mystery", "fantasy", "science fiction", "adventure", "suspense", "action"],
+        "tone": ["fast-paced", "engaging", "suspenseful", "dynamic", "surprising", "unpredictable"],
+        "themes": ["adventure", "mystery", "conflict", "challenge", "excitement", "discovery", "unexpected"],
+        "avoid": ["slow-paced", "highly descriptive", "academic", "philosophical", "overly complex"]
+    },
+    "confused": {
+        "keywords": ["clarity", "explanation", "understanding", "insight", "accessible", "straightforward", "illuminating", "instructive"],
+        "genres": ["self-help", "philosophy", "psychology", "educational", "how-to", "popular science", "guides"],
+        "tone": ["clear", "straightforward", "organized", "methodical", "accessible", "logical"],
+        "themes": ["understanding", "clarity", "knowledge", "insight", "explanation", "guidance", "organization"],
+        "avoid": ["experimental fiction", "stream of consciousness", "complex postmodern", "abstract"]
+    },
+    "hopeful": {
+        "keywords": ["optimistic", "hope", "positivity", "inspiring", "encouraging", "uplifting", "promising", "bright"],
+        "genres": ["inspirational", "feel-good fiction", "motivational", "uplifting memoir", "positive psychology"],
+        "tone": ["optimistic", "uplifting", "encouraging", "positive", "forward-looking", "bright"],
+        "themes": ["hope", "perseverance", "overcoming obstacles", "new beginnings", "resilience", "possibility", "future"],
+        "avoid": ["nihilistic", "dystopian", "apocalyptic", "bleak", "depressing"]
+    }
+}
+
+# Use a more powerful sentence transformer model
+def initialize_ai_model():
+    """Initialize the advanced recommendation models"""
+    # Load SentenceTransformer for better semantic understanding
+    sentence_model = SentenceTransformer('all-MiniLM-L6-v2')
+    
+    # Keep BERT for backward compatibility or specific tasks
+    bert_tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+    bert_model = AutoModel.from_pretrained("bert-base-uncased")
+    
+    return {
+        'sentence_transformer': sentence_model,
+        'bert_tokenizer': bert_tokenizer,
+        'bert_model': bert_model
+    }
+
+# Global models
+AI_MODELS = initialize_ai_model()
+
+# Enhanced mood descriptions for better embeddings
+def initialize_mood_embeddings():
+    mood_descriptions = {
+        "happy": """Content that brings joy and positive emotions. Books with uplifting stories, 
+                humor, light-hearted comedy, and happy endings. Characters who overcome challenges 
+                with optimism and find happiness. Narratives that are upbeat, warm, and leave the 
+                reader feeling good. Stories that celebrate life's simple pleasures and human connection.""",
+        
+        "sad": """Content that explores deeper emotions and provides catharsis. Books with moving stories 
+                about loss, grief, and emotional journeys. Thoughtful examinations of human suffering 
+                and resilience. Literary works that acknowledge sadness as part of life and help 
+                process complex feelings. Stories that find meaning and beauty in melancholy.""",
+        
+        "inspired": """Content that motivates and empowers. Books with stories of remarkable achievement, 
+                    perseverance, and transformation. Works that share wisdom and strategies for 
+                    personal growth. Narratives that showcase human potential and the power of 
+                    determination. Stories that ignite passion and encourage action.""",
+        
+        "adventurous": """Content that excites and thrills with journeys and exploration. Books featuring 
+                        quests, expeditions, and discovery of new worlds or ideas. Fast-paced narratives 
+                        with dynamic characters facing challenges and dangers. Stories of courage, survival, 
+                        and the human drive to explore the unknown. Works that transport readers to exotic 
+                        locations and extraordinary circumstances.""",
+        
+        "relaxed": """Content that soothes and comforts. Books with gentle pacing and peaceful atmospheres 
+                    that provide an escape from stress. Cozy narratives set in charming locations with 
+                    likeable characters and minimal conflict. Stories that celebrate everyday life, simple 
+                    pleasures, and harmony with nature. Works that create a sense of tranquility and contentment.""",
+        
+        "anxious": """Content that helps manage worry and stress. Books offering practical guidance on 
+                mindfulness and stress-relief techniques. Reassuring narratives that provide perspective 
+                on anxiety-inducing situations. Stories of characters finding balance and developing 
+                resilience. Works that create a sense of calm and offer tools for emotional regulation 
+                and self-care.""",
+        
+        "romantic": """Content that celebrates love and passion. Books exploring the development of romantic 
+                    relationships and emotional connections. Stories of attraction, desire, and commitment 
+                    between characters. Narratives that capture the intensity and tenderness of love in its 
+                    many forms. Works that evoke warmth and hope through meaningful relationships and 
+                    intimate moments.""",
+        
+        "curious": """Content that satisfies the thirst for knowledge and discovery. Books that reveal 
+                fascinating information and unexpected insights about our world. Thought-provoking 
+                explorations of ideas, history, science, and human behavior. Educational narratives 
+                that make complex subjects accessible and engaging. Works that inspire wonder and 
+                expand understanding through clear, informative approaches.""",
+        
+        "nostalgic": """Content that evokes the bittersweet pleasure of remembering. Books that transport 
+                    readers to bygone eras with rich historical detail. Stories that capture the essence 
+                    of childhood memories and cultural heritage. Reflective narratives about family, 
+                    tradition, and the passage of time. Works that create a sense of connection to the 
+                    past through evocative, wistful storytelling.""",
+        
+        "scared": """Content that thrills with suspense and fear. Books with eerie atmospheres, supernatural 
+                elements, or psychological tension. Stories featuring characters facing danger, the unknown, 
+                or terrifying situations. Narratives that build suspense and create a sense of foreboding. 
+                Works that explore primal fears and the darker aspects of human experience through chilling, 
+                suspenseful storytelling.""",
+        
+        "angry": """Content that channels and explores righteous indignation. Books featuring characters 
+                standing up against injustice and fighting for change. Intense narratives of resistance, 
+                rebellion, and empowerment. Stories that confront difficult truths about society and power. 
+                Works that transform outrage into action through powerful, unflinching portrayals of conflict 
+                and the struggle for justice.""",
+        
+        "bored": """Content that captivates with excitement and engagement. Books with gripping plots that 
+                keep pages turning and attention focused. Fast-paced, dynamic stories with unexpected twists 
+                and compelling conflicts. Narratives that transport readers away from monotony into worlds 
+                of adventure and intrigue. Works that stimulate the mind and imagination through surprising, 
+                unpredictable storytelling.""",
+        
+        "confused": """Content that brings clarity and understanding. Books that explain complex concepts 
+                in accessible, straightforward language. Well-organized narratives that guide readers 
+                step-by-step through difficult topics. Stories that illuminate confusing aspects of life 
+                and human behavior. Works that create order from chaos through logical, methodical approaches 
+                to knowledge and insight.""",
+        
+        "hopeful": """Content that inspires optimism and positive expectation. Books with uplifting narratives 
+                about new beginnings and positive change. Stories of characters persevering through difficult 
+                circumstances and finding light in darkness. Forward-looking works that emphasize possibility 
+                and potential. Narratives that reinforce belief in a better future through encouraging, 
+                bright perspectives on life's challenges."""
+    }
+    
+    # Generate embeddings using SentenceTransformer for better semantic understanding
+    mood_embeddings = {}
+    for mood, description in mood_descriptions.items():
+        mood_embeddings[mood] = AI_MODELS['sentence_transformer'].encode([description])[0]
+    
+    return mood_embeddings
+
+# Cache the mood embeddings
+MOOD_EMBEDDINGS = initialize_mood_embeddings()
+
+def get_user_preference_embedding(user):
+    """Generate embeddings for user preferences based on reading history and explicit preferences"""
+    preferences_text = ""
+    
+    # Add favorite genres if available
+    if hasattr(user, 'favorite_genres') and user.favorite_genres:
+        genres = user.favorite_genres.split(",")
+        preferences_text += f"Enjoys reading {', '.join(genres)}. "
+    
+    # Add reading history if available - this assumes a user_book_history model exists
+    if hasattr(user, 'reading_history') and user.reading_history.exists():
+        history = user.reading_history.all()[:5]  # Get recent history
+        history_titles = [item.book.title for item in history if hasattr(item, 'book')]
+        if history_titles:
+            preferences_text += f"Has recently read {', '.join(history_titles)}. "
+    
+    # Add reading preferences if available
+    if hasattr(user, 'reading_preferences') and user.reading_preferences:
+        preferences_text += user.reading_preferences
+    
+    # If we have preference data, create an embedding
+    if preferences_text:
+        return AI_MODELS['sentence_transformer'].encode([preferences_text])[0]
+    
+    return None
+
+def analyze_book_emotional_tone(volume_info):
+    """Analyze the emotional tone and themes of a book based on available metadata"""
+    # Extract all meaningful text from the book info
+    text_elements = []
+    
+    if volume_info.get('title'):
+        text_elements.append(volume_info['title'])
+    
+    if volume_info.get('subtitle'):
+        text_elements.append(volume_info['subtitle'])
+    
+    if volume_info.get('description'):
+        text_elements.append(volume_info['description'])
+    
+    if volume_info.get('categories'):
+        text_elements.append(' '.join(volume_info['categories']))
+    
+    # Join all text elements
+    full_text = ' '.join(text_elements)
+    
+    # Create emotion markers to detect in the text
+    emotion_markers = {
+        'joy': ['happiness', 'joyful', 'celebration', 'delightful', 'cheerful', 'happy', 'uplifting'],
+        'sadness': ['sad', 'grief', 'melancholy', 'heartbreaking', 'sorrow', 'tragic', 'loss'],
+        'fear': ['frightening', 'scary', 'terrifying', 'horror', 'dread', 'suspense', 'threat'],
+        'anger': ['angry', 'rage', 'fury', 'outrage', 'vengeance', 'injustice', 'conflict'],
+        'surprise': ['unexpected', 'twist', 'surprising', 'shocking', 'revelation', 'discovery'],
+        'anticipation': ['quest', 'journey', 'adventure', 'suspense', 'anticipate', 'awaiting'],
+        'trust': ['friendship', 'loyalty', 'reliability', 'honesty', 'faith', 'steadfast'],
+        'disgust': ['revulsion', 'disturbing', 'grotesque', 'repulsive', 'stomach-turning']
+    }
+    
+    # Simple sentiment scoring
+    emotions = {}
+    for emotion, markers in emotion_markers.items():
+        score = sum(1 for marker in markers if marker.lower() in full_text.lower())
+        emotions[emotion] = score / len(markers)  # Normalize
+    
+    # Extract prominent themes
+    theme_markers = {
+        'adventure': ['journey', 'quest', 'expedition', 'travel', 'exploration', 'discovery'],
+        'romance': ['love', 'relationship', 'romantic', 'passion', 'affair', 'marriage'],
+        'mystery': ['mystery', 'puzzle', 'detective', 'clue', 'investigation', 'solve'],
+        'growth': ['development', 'learning', 'improvement', 'maturity', 'wisdom', 'realization'],
+        'conflict': ['battle', 'struggle', 'fight', 'conflict', 'confrontation', 'war', 'opposition'],
+        'family': ['family', 'parent', 'child', 'sibling', 'generation', 'household', 'relatives'],
+        'identity': ['identity', 'self', 'discovery', 'understanding', 'realization', 'purpose'],
+        'society': ['social', 'community', 'culture', 'society', 'political', 'class', 'status']
+    }
+    
+    themes = {}
+    for theme, markers in theme_markers.items():
+        score = sum(1 for marker in markers if marker.lower() in full_text.lower())
+        themes[theme] = score / len(markers)  # Normalize
+    
+    return {
+        'emotions': emotions,
+        'themes': themes,
+        'embedding': AI_MODELS['sentence_transformer'].encode([full_text])[0]
+    }
+
+@csrf_exempt
+@login_required
+def get_mood_recommendations(request):
+    """Enhanced recommendation system based on user's mood with advanced AI matching"""
+    if request.method != "GET":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    
+    user = request.user
+    mood = request.GET.get("mood", "").lower()
+    limit = int(request.GET.get("limit", 10))
+    variety = request.GET.get("variety", "medium")  # Allow user to control recommendation variety
+    
+    logger.info(f"Generating enhanced AI-based mood recommendations for user: {user.username}, Mood: {mood}")
+    
+    if not mood or mood not in MOOD_MAPPING:
+        return JsonResponse({"error": "Valid mood parameter is required"}, status=400)
+    
+    try:
+        # Get the mood embedding and data
+        current_mood_embedding = MOOD_EMBEDDINGS.get(mood)
+        mood_data = MOOD_MAPPING[mood]
+        
+        # Get user preference embedding if available
+        user_embedding = get_user_preference_embedding(user)
+        
+        # Create a diverse set of search queries to ensure variety
+        search_queries = []
+        
+        # Add mood-based queries
+        keywords = random.sample(mood_data["keywords"], min(3, len(mood_data["keywords"])))
+        genres = random.sample(mood_data["genres"], min(2, len(mood_data["genres"])))
+        themes = random.sample(mood_data.get("themes", []), min(2, len(mood_data.get("themes", []))))
+        
+        # Create primary mood-based query
+        primary_terms = keywords + genres + themes
+        random.shuffle(primary_terms)
+        search_queries.append(" OR ".join(primary_terms[:4]))  # Limit terms for better results
+        
+        # Add user preference-based query if available
+        if hasattr(user, 'favorite_genres') and user.favorite_genres:
+            favorite_genres = user.favorite_genres.split(",")
+            if favorite_genres:
+                genre_query = f"{mood} {random.choice(keywords)} {random.choice(favorite_genres)}"
+                search_queries.append(genre_query)
+        
+        # Add reading level or target audience if set in user preferences
+        if hasattr(user, 'reading_level') and user.reading_level:
+            level_query = f"{mood} {user.reading_level}"
+            search_queries.append(level_query)
+        
+        # Collect all results from multiple queries
+        all_items = []
+        
+        for query in search_queries:
+            params = {
+                "q": query,
+                "key": settings.GOOGLE_BOOKS_API_KEY,
+                "maxResults": limit * 2,  # Request more for AI filtering
+                "orderBy": "relevance",
+                "fields": "items(id,volumeInfo)",  # Reduce response size
+            }
+            
+            response = requests.get(GOOGLE_BOOKS_API_URL, params=params)
+            response.raise_for_status()
+            data = response.json()
+            
+            if "items" in data:
+                all_items.extend(data["items"])
+        
+        # De-duplicate items
+        unique_items = {}
+        for item in all_items:
+            if item["id"] not in unique_items:
+                unique_items[item["id"]] = item
+        
+        # Process results using advanced AI analysis
+        books_with_scores = []
+        for item in unique_items.values():
+            volume_info = item.get("volumeInfo", {})
+            image_links = volume_info.get("imageLinks", {})
+            
+            # Skip books without sufficient information
+            if not volume_info.get("description") or "thumbnail" not in image_links:
+                continue
+                
+            # Perform emotional analysis
+            book_analysis = analyze_book_emotional_tone(volume_info)
+            book_embedding = book_analysis['embedding']
+            
+            # Calculate multiple similarity scores
+            mood_similarity = float(cosine_similarity([current_mood_embedding], [book_embedding])[0][0])
+            
+            # Calculate user preference similarity if available
+            user_similarity = 0.5  # Default neutral value
+            if user_embedding is not None:
+                user_similarity = float(cosine_similarity([user_embedding], [book_embedding])[0][0])
+            
+            # Check for themes that match the current mood
+            theme_match = 0
+            if mood in ["happy", "joyful"]:
+                theme_match = book_analysis['emotions'].get('joy', 0)
+            elif mood in ["sad", "melancholy"]:
+                theme_match = book_analysis['emotions'].get('sadness', 0)
+            elif mood in ["scared", "frightened"]:
+                theme_match = book_analysis['emotions'].get('fear', 0)
+            elif mood in ["angry", "outraged"]:
+                theme_match = book_analysis['emotions'].get('anger', 0)
+            elif mood in ["adventurous"]:
+                theme_match = book_analysis['themes'].get('adventure', 0)
+            elif mood in ["romantic"]:
+                theme_match = book_analysis['themes'].get('romance', 0)
+            
+            # Combine scores with weighting
+            # Adjust these weights based on what seems to give the best results
+            combined_score = (
+                mood_similarity * 0.6 +
+                user_similarity * 0.25 +
+                theme_match * 0.15
+            )
+            
+            # Check for mood mismatch (avoid inappropriate content for the mood)
+            if mood_data.get("avoid"):
+                avoid_terms = mood_data["avoid"]
+                desc_lower = volume_info.get("description", "").lower()
+                categories = [c.lower() for c in volume_info.get("categories", [])]
+                
+                # Check if book contains avoided terms
+                for term in avoid_terms:
+                    if term.lower() in desc_lower or any(term.lower() in category for category in categories):
+                        combined_score *= 0.7  # Reduce score but don't eliminate entirely
+            
+            # Add diversity factor based on user's variety preference
+            if variety == "high":
+                # Add some randomness to encourage diverse recommendations
+                combined_score = combined_score * 0.8 + random.uniform(0, 0.2)
+            elif variety == "low":
+                # Prioritize the closest matches
+                combined_score = combined_score * 0.95 + random.uniform(0, 0.05)
+            
+            books_with_scores.append({
+                "item": item,
+                "volume_info": volume_info,
+                "image_links": image_links,
+                "similarity_score": combined_score,
+                "mood_similarity": mood_similarity,
+                "user_similarity": user_similarity,
+                "theme_match": theme_match,
+                "emotional_profile": book_analysis['emotions'],
+                "thematic_profile": book_analysis['themes']
+            })
+        
+        # Sort by similarity score and take top matches
+        books_with_scores.sort(key=lambda x: x["similarity_score"], reverse=True)
+        top_matches = books_with_scores[:limit]
+        
+        # Format final results
+        books = []
+        for match in top_matches:
+            item = match["item"]
+            volume_info = match["volume_info"]
+            image_links = match["image_links"]
+            
+            # Generate personalized recommendation reason
+            recommendation_reason = generate_personalized_recommendation_reason(
+                mood, 
+                volume_info, 
+                match["similarity_score"],
+                match["emotional_profile"],
+                match["thematic_profile"],
+                user
+            )
+            
+            books.append({
+                "id": item.get("id"),
+                "title": volume_info.get("title", "Unknown Title"),
+                "authors": ", ".join(volume_info.get("authors", ["Unknown Author"])),
+                "image": image_links.get("thumbnail", ""),
+                "publishedDate": volume_info.get("publishedDate", "N/A"),
+                "description": volume_info.get("description", "")[:150] + "..." if volume_info.get("description") else "",
+                "categories": ", ".join(volume_info.get("categories", [])),
+                "mood_relevance": mood,
+                "similarity_score": round(match["similarity_score"] * 100, 1),  # Convert to percentage
+                "recommendation_reason": recommendation_reason
+            })
+        
+        return JsonResponse({
+            "books": books,
+            "mood": mood,
+            "mood_description": get_enhanced_mood_description(mood, user)
+        }, safe=False)
+        
+    except requests.RequestException as e:
+        logger.error(f"Error fetching mood recommendations: {str(e)}")
+        return JsonResponse({"error": f"Failed to fetch recommendations: {str(e)}"}, status=500)
+    except Exception as e:
+        logger.error(f"Error processing mood recommendations: {str(e)}")
+        return JsonResponse({"error": f"Error processing recommendations: {str(e)}"}, status=500)
+
+def generate_personalized_recommendation_reason(mood, volume_info, similarity_score, emotional_profile, thematic_profile, user):
+    """Generate a highly personalized recommendation reason based on comprehensive analysis"""
+    # Base mood phrases (enhanced from original)
+    mood_phrases = {
+    "happy": [
+        "Perfect for maintaining your upbeat mood",
+        "A joyful read that aligns with your happy state",
+        "Will keep your spirits high with its delightful content",
+        "Matches your cheerful mood with its uplifting story"
+    ],
+    "sad": [
+        "A moving story that resonates with your current emotional state",
+        "Provides thoughtful reflection when you're feeling melancholic",
+        "A beautifully written companion for your contemplative mood",
+        "Explores emotional depths that mirror your current feelings"
+    ],
+    "inspired": [
+        "Fuels your motivation with powerful stories of achievement",
+        "Amplifies your inspired state with transformative narratives",
+        "Channels your energy into meaningful personal growth",
+        "Reinforces your drive with accounts of remarkable perseverance"
+    ],
+    "adventurous": [
+        "Satisfies your thirst for excitement and discovery",
+        "Takes your adventurous spirit on an unforgettable journey",
+        "Matches your bold mood with thrilling quests and challenges",
+        "Fuels your desire for exploration with dynamic storytelling"
+    ],
+    "relaxed": [
+        "Maintains your peaceful state with gentle, soothing narrative",
+        "A comforting read that complements your tranquil mood",
+        "Enhances your calm with its warm, unhurried storytelling",
+        "Preserves your serene feeling with cozy, heartwarming content"
+    ],
+    "anxious": [
+        "Offers reassurance and perspective when you're feeling on edge",
+        "Provides calming insights to help manage your anxious thoughts",
+        "A grounding read that brings balance to your worried mind",
+        "Therapeutic storytelling that eases tension and builds resilience"
+    ],
+    "romantic": [
+        "Embraces your passionate mood with intimate, moving relationships",
+        "Complements your romantic feelings with heartfelt connections",
+        "Indulges your desire for love stories with tender narratives",
+        "Matches your affectionate state with tales of deep emotional bonds"
+    ],
+    "curious": [
+        "Satisfies your inquisitive mind with fascinating insights",
+        "Feeds your curiosity with thought-provoking discoveries",
+        "Expands your knowledge in exactly the way you're craving",
+        "Rewards your questioning nature with illuminating content"
+    ],
+    "nostalgic": [
+        "Embraces your reflective mood with evocative glimpses of the past",
+        "Complements your wistful feelings with rich historical atmosphere",
+        "Resonates with your sentimental state through timeless storytelling",
+        "Honors your connection to the past with memory-infused narratives"
+    ],
+    "scared": [
+        "Intensifies your thrill-seeking mood with suspenseful storytelling",
+        "Channels your desire for spine-tingling tension into perfect frights",
+        "Matches your appetite for eerie experiences with chilling tales",
+        "Complements your brave exploration of fear with haunting narratives"
+    ],
+    "angry": [
+        "Channels your passionate energy into stories of justice and resistance",
+        "Reflects your righteous indignation with powerful accounts of change",
+        "Transforms your intensity into meaningful engagement with conflict",
+        "Honors your strong emotions with unflinching portrayals of struggle"
+    ],
+    "bored": [
+        "Captivates your attention with unputdownable, gripping storytelling",
+        "Rescues you from monotony with fast-paced, engaging adventures",
+        "Banishes your restlessness with addictive, surprising narratives",
+        "Transforms your boredom into excitement with compelling action"
+    ],
+    "confused": [
+        "Brings clarity and understanding when you need straightforward guidance",
+        "Organizes complex ideas into accessible insights for your clouded mind",
+        "Illuminates your path with clear, methodical explanations",
+        "Transforms confusion into comprehension with logical, structured content"
+    ],
+    "hopeful": [
+        "Nurtures your optimism with inspiring stories of possibility",
+        "Reinforces your positive outlook with uplifting narratives",
+        "Brightens your forward-looking perspective with encouraging themes",
+        "Celebrates your hopeful spirit with tales of resilience and new beginnings"
+    ]
+}
+    
+    # Select base phrase for the mood
+    phrases = mood_phrases.get(mood, ["A perfect match for your current mood"])
+    reason = random.choice(phrases)
+    
+    # Add match quality based on similarity score
+    if similarity_score > 0.85:
+        match_quality = "Outstanding emotional match"
+    elif similarity_score > 0.75:
+        match_quality = "Excellent emotional match"
+    elif similarity_score > 0.65:
+        match_quality = "Strong emotional match"
+    else:
+        match_quality = "Good emotional match"
+    
+    # Add specific book elements that match the mood
+    book_elements = []
+    
+    # Add genre information if available
+    genres = volume_info.get("categories", [])
+    if genres:
+        genre = random.choice(genres)
+        book_elements.append(f"its {genre} elements")
+    
+    # Add emotional tone information
+    dominant_emotions = sorted(emotional_profile.items(), key=lambda x: x[1], reverse=True)
+    if dominant_emotions and dominant_emotions[0][1] > 0.3:
+        top_emotion = dominant_emotions[0][0]
+        emotion_phrases = {
+            "joy": "uplifting tone",
+            "sadness": "poignant storytelling",
+            "fear": "suspenseful narrative",
+            "anger": "powerful emotional intensity",
+            "surprise": "unexpected twists",
+            "anticipation": "engaging suspense",
+            "trust": "heartwarming relationships",
+            "disgust": "challenging subject matter"
+        }
+        book_elements.append(emotion_phrases.get(top_emotion, f"{top_emotion} elements"))
+    
+    # Add thematic information
+    dominant_themes = sorted(thematic_profile.items(), key=lambda x: x[1], reverse=True)
+    if dominant_themes and dominant_themes[0][1] > 0.3:
+        top_theme = dominant_themes[0][0]
+        theme_phrases = {
+            "adventure": "sense of adventure",
+            "romance": "romantic storyline",
+            "mystery": "intriguing mysteries",
+            "growth": "character development",
+            "conflict": "meaningful conflicts",
+            "family": "family dynamics",
+            "identity": "exploration of identity",
+            "society": "social commentary"
+        }
+        book_elements.append(theme_phrases.get(top_theme, f"focus on {top_theme}"))
+    
+    # Add specific user preference match if available
+    if hasattr(user, 'favorite_genres') and user.favorite_genres:
+        user_genres = [genre.strip().lower() for genre in user.favorite_genres.split(",")]
+        book_categories = [category.lower() for category in volume_info.get("categories", [])]
+        
+        # Check for matches between user genres and book categories
+        matches = [genre for genre in user_genres if any(genre in category for category in book_categories)]
+        if matches:
+            book_elements.append(f"alignment with your interest in {matches[0]}")
+    
+    # Combine elements into the reason
+    if book_elements:
+        elements_text = ", ".join(book_elements[:2])  # Limit to 2 elements for conciseness
+        reason += f" with {elements_text}"
+    
+    # Add AI matching information more subtly
+    reason += f". {match_quality}."
+    
+    return reason
+
+def get_enhanced_mood_description(mood, user=None):
+    """Return a personalized description for each mood category"""
+    # Base descriptions
+    descriptions = {
+        "happy": "Uplifting books curated to match and enhance your joyful mood",
+        "sad": "Emotionally resonant books that acknowledge and provide companionship for your melancholy", 
+        "inspired": "Motivational reads carefully selected to fuel your inspiration and drive",
+        "adventurous": "Thrilling stories perfectly matched to your adventurous spirit",
+        "relaxed": "Gentle, soothing reads to maintain your peaceful state of mind",
+        "anxious": "Calming books offering reassurance and perspective for your worried mind",
+        "romantic": "Passionate stories celebrating intimate connections that embrace your affectionate mood",
+        "curious": "Thought-provoking books filled with fascinating insights to satisfy your inquisitive nature",
+        "nostalgic": "Evocative tales with rich historical atmosphere to complement your reflective feelings",
+        "scared": "Spine-tingling narratives that perfectly channel your desire for thrilling suspense",
+        "angry": "Powerful accounts of justice and resistance that honor your intense emotions",
+        "bored": "Captivating, unputdownable stories guaranteed to transform monotony into excitement",
+        "confused": "Clear, accessible books offering straightforward guidance to bring clarity to your mind",
+        "hopeful": "Inspiring stories of possibility and resilience to nurture your optimistic outlook"
+    }
+    
+    base_description = descriptions.get(mood, "Books selected to match your current mood with AI-powered emotional analysis")
+    
+    # Add personalization if user information is available
+    personalized_elements = []
+    
+    if user and hasattr(user, 'favorite_genres') and user.favorite_genres:
+        genres = user.favorite_genres.split(",")[:2]  # Limit to 2 for conciseness
+        if genres:
+            genres_text = " and ".join(genres)
+            personalized_elements.append(f"with attention to your interest in {genres_text}")
+    
+    if user and hasattr(user, 'reading_level') and user.reading_level:
+        personalized_elements.append(f"at your preferred {user.reading_level} reading level")
+    
+    # Add personalization to the description
+    if personalized_elements:
+        personalized_text = " ".join(personalized_elements)
+        base_description += f", {personalized_text}"
+    
+    return base_description

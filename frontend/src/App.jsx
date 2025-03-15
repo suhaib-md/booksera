@@ -10,6 +10,7 @@ import Profile from "./pages/Profile";
 import Bookshelf from "./pages/Bookshelf";
 import Search from "./pages/Search";  
 import BookDetail from "./pages/BookDetail";
+import MoodRecommendations from "./pages/MoodRecommendations";
 
 
 function App() {
@@ -37,6 +38,7 @@ function AppContent() {
           <Route path="/bookshelf" element={<Bookshelf />} />
           <Route path="/search" element={<Search />} />
           <Route path="/book/:bookId" element={<BookDetail />} />
+          <Route path="/mood" element={<MoodRecommendations />} />
         </Routes>
       </ErrorBoundary>
     </>

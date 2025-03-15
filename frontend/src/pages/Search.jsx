@@ -387,7 +387,7 @@ function Search() {
 
         {/* Quick Actions */}
         <section className="max-w-6xl mx-auto p-6 mt-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div 
               onClick={() => navigate("/bookshelf")}
               className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white p-6 rounded-lg shadow-md hover:shadow-xl cursor-pointer transition-transform hover:-translate-y-1"
@@ -396,20 +396,33 @@ function Search() {
                 <div className="text-4xl mr-4">📚</div>
                 <div>
                   <h3 className="text-xl font-bold">My Bookshelf</h3>
-                  <p className="opacity-90">Manage your reading list and track your progress</p>
+                  <p className="opacity-90">Manage your reading list</p>
                 </div>
               </div>
             </div>
             
             <div 
-              onClick={() => navigate("/")}
+              onClick={() => navigate("/mood")}
+              className="bg-gradient-to-r from-blue-500 to-teal-500 text-white p-6 rounded-lg shadow-md hover:shadow-xl cursor-pointer transition-transform hover:-translate-y-1"
+            >
+              <div className="flex items-center">
+                <div className="text-4xl mr-4">😊</div>
+                <div>
+                  <h3 className="text-xl font-bold">Mood Reader</h3>
+                  <p className="opacity-90">Find books that match your mood</p>
+                </div>
+              </div>
+            </div>
+            
+            <div 
+              onClick={() => navigate("/communities")}
               className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white p-6 rounded-lg shadow-md hover:shadow-xl cursor-pointer transition-transform hover:-translate-y-1"
             >
               <div className="flex items-center">
-                <div className="text-4xl mr-4">🏠</div>
+                <div className="text-4xl mr-4">👥</div>
                 <div>
-                  <h3 className="text-xl font-bold">Home</h3>
-                  <p className="opacity-90">Back to recommendations and trending books</p>
+                  <h3 className="text-xl font-bold">Communities</h3>
+                  <p className="opacity-90">Join book discussions</p>
                 </div>
               </div>
             </div>
