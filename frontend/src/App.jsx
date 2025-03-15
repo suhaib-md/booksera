@@ -9,6 +9,8 @@ import Home from "./pages/Home";
 import Profile from "./pages/Profile";
 import Bookshelf from "./pages/Bookshelf";
 import Search from "./pages/Search";  
+import BookDetail from "./pages/BookDetail";
+
 
 function App() {
   return (
@@ -34,6 +36,7 @@ function AppContent() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/bookshelf" element={<Bookshelf />} />
           <Route path="/search" element={<Search />} />
+          <Route path="/book/:bookId" element={<BookDetail />} />
         </Routes>
       </ErrorBoundary>
     </>

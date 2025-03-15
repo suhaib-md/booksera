@@ -101,24 +101,29 @@ function Home() {
   };
 
   // Display recommendations in carousel view
-  const renderBooksCarousel = (books, isRecommended = true) => {
-    const displayBooks = isRecommended 
-      ? (viewMoreRecommendations ? books : books.slice(0, 8))
-      : (viewMoreTrending ? books : books.slice(0, 8));
-      
-    return (
-      <div className="overflow-x-auto whitespace-nowrap pb-4">
-        {displayBooks.map((book) => {
-          const bookTitle = isRecommended ? book.title : book.volumeInfo?.title;
-          const bookAuthors = isRecommended ? book.authors : book.volumeInfo?.authors?.join(", ") || "Unknown Author";
-          const bookImage = isRecommended ? book.image : book.volumeInfo?.imageLinks?.thumbnail;
-          const bookPublishedDate = isRecommended ? book.publishedDate : book.volumeInfo?.publishedDate;
-          const bookDescription = isRecommended ? book.description : book.volumeInfo?.description;
-          
-          return (
-            <div
-              key={book.id}
-              className="inline-block bg-white p-4 rounded-lg shadow-md hover:shadow-xl w-64 mx-2 flex-shrink-0"
+const renderBooksCarousel = (books, isRecommended = true) => {
+  const displayBooks = isRecommended 
+    ? (viewMoreRecommendations ? books : books.slice(0, 8))
+    : (viewMoreTrending ? books : books.slice(0, 8));
+    
+  return (
+    <div className="overflow-x-auto whitespace-nowrap pb-4">
+      {displayBooks.map((book) => {
+        const bookId = isRecommended ? book.id : book.id;
+        const bookTitle = isRecommended ? book.title : book.volumeInfo?.title;
+        const bookAuthors = isRecommended ? book.authors : book.volumeInfo?.authors?.join(", ") || "Unknown Author";
+        const bookImage = isRecommended ? book.image : book.volumeInfo?.imageLinks?.thumbnail;
+        const bookPublishedDate = isRecommended ? book.publishedDate : book.volumeInfo?.publishedDate;
+        const bookDescription = isRecommended ? book.description : book.volumeInfo?.description;
+        
+        return (
+          <div
+            key={book.id}
+            className="inline-block bg-white p-4 rounded-lg shadow-md hover:shadow-xl w-64 mx-2 flex-shrink-0"
+          >
+            <div 
+              onClick={() => navigate(`/book/${bookId}`)}
+              className="cursor-pointer"
             >
               <img
                 src={bookImage || "placeholder.jpg"}
@@ -134,82 +139,92 @@ function Home() {
                 </p>
               )}
               <p className="text-gray-600 text-sm mt-1 line-clamp-2 h-10">{bookDescription}</p>
+            </div>
+            <div className="mt-2 flex justify-center space-x-2">
+              <button
+                onClick={() => addToBookshelf(book, "to_read")}
+                className="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
+              >
+                To Read
+              </button>
+              <button
+                onClick={() => addToBookshelf(book, "read")}
+                className="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600"
+              >
+                Read
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+// Display books in grid view
+const renderBooksGrid = (books, isRecommended = true) => {
+  const displayBooks = isRecommended 
+    ? (viewMoreRecommendations ? books : books.slice(0, 8))
+    : (viewMoreTrending ? books : books.slice(0, 8));
+    
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {displayBooks.map((book) => {
+        const bookId = isRecommended ? book.id : book.id;
+        const bookTitle = isRecommended ? book.title : book.volumeInfo?.title;
+        const bookAuthors = isRecommended ? book.authors : book.volumeInfo?.authors?.join(", ") || "Unknown Author";
+        const bookImage = isRecommended ? book.image : book.volumeInfo?.imageLinks?.thumbnail;
+        const recommendationReason = isRecommended ? book.recommendation_reason : null;
+        
+        return (
+          <div
+            key={book.id}
+            className="bg-white p-4 rounded-lg shadow-md hover:shadow-xl flex flex-col"
+          >
+            <div 
+              className="flex-grow flex items-center justify-center cursor-pointer"
+              onClick={() => navigate(`/book/${bookId}`)}
+            >
+              <img
+                src={bookImage || "placeholder.jpg"}
+                alt={bookTitle}
+                className="w-32 h-48 object-cover rounded-md shadow"
+              />
+            </div>
+            <div className="mt-2">
+              <h4 
+                className="font-semibold text-center text-md truncate cursor-pointer"
+                onClick={() => navigate(`/book/${bookId}`)}
+              >
+                {bookTitle}
+              </h4>
+              <p className="text-gray-600 text-xs text-center truncate">{bookAuthors}</p>
+              {recommendationReason && (
+                <p className="text-blue-600 text-xs mt-1 text-center font-medium">
+                  {recommendationReason}
+                </p>
+              )}
               <div className="mt-2 flex justify-center space-x-2">
                 <button
                   onClick={() => addToBookshelf(book, "to_read")}
-                  className="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
+                  className="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600"
                 >
                   To Read
                 </button>
                 <button
                   onClick={() => addToBookshelf(book, "read")}
-                  className="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600"
+                  className="bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600"
                 >
                   Read
                 </button>
               </div>
             </div>
-          );
-        })}
-      </div>
-    );
-  };
-
-  // Display books in grid view
-  const renderBooksGrid = (books, isRecommended = true) => {
-    const displayBooks = isRecommended 
-      ? (viewMoreRecommendations ? books : books.slice(0, 8))
-      : (viewMoreTrending ? books : books.slice(0, 8));
-      
-    return (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {displayBooks.map((book) => {
-          const bookTitle = isRecommended ? book.title : book.volumeInfo?.title;
-          const bookAuthors = isRecommended ? book.authors : book.volumeInfo?.authors?.join(", ") || "Unknown Author";
-          const bookImage = isRecommended ? book.image : book.volumeInfo?.imageLinks?.thumbnail;
-          const recommendationReason = isRecommended ? book.recommendation_reason : null;
-          
-          return (
-            <div
-              key={book.id}
-              className="bg-white p-4 rounded-lg shadow-md hover:shadow-xl flex flex-col"
-            >
-              <div className="flex-grow flex items-center justify-center">
-                <img
-                  src={bookImage || "placeholder.jpg"}
-                  alt={bookTitle}
-                  className="w-32 h-48 object-cover rounded-md shadow"
-                />
-              </div>
-              <div className="mt-2">
-                <h4 className="font-semibold text-center text-md truncate">{bookTitle}</h4>
-                <p className="text-gray-600 text-xs text-center truncate">{bookAuthors}</p>
-                {recommendationReason && (
-                  <p className="text-blue-600 text-xs mt-1 text-center font-medium">
-                    {recommendationReason}
-                  </p>
-                )}
-                <div className="mt-2 flex justify-center space-x-2">
-                  <button
-                    onClick={() => addToBookshelf(book, "to_read")}
-                    className="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600"
-                  >
-                    To Read
-                  </button>
-                  <button
-                    onClick={() => addToBookshelf(book, "read")}
-                    className="bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600"
-                  >
-                    Read
-                  </button>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
   return (
     <AuthGuard>

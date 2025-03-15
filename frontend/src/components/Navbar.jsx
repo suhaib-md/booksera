@@ -1,6 +1,5 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
-import axios from "axios";
 import { IoMdLogOut, IoMdSearch } from "react-icons/io";
 import { MdAccountCircle, MdHome, MdMenuBook, MdPeople } from "react-icons/md";
 import { useAuth } from "../components/AuthContext";
@@ -10,9 +9,6 @@ function Navbar() {
   const location = useLocation();
   const { user, logout } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchType, setSearchType] = useState("all");
-  const [searchError, setSearchError] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -30,34 +26,12 @@ function Navbar() {
     };
   }, []);
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    setSearchError("");
-
-    if (!searchQuery.trim()) {
-      setSearchError("Please enter a search term.");
-      return;
-    }
-
-    try {
-      const response = await axios.get(
-        `http://localhost:8000/api/search/?q=${encodeURIComponent(searchQuery)}&type=${searchType}`,
-        { withCredentials: true }
-      );
-      const { books, totalItems } = response.data;
-      if (books.length === 0) {
-        setSearchError("No books found for this query.");
-      } else {
-        navigate("/search", { state: { books, query: searchQuery, totalItems, searchType } });
-      }
-    } catch (error) {
-      console.error("Error searching books:", error);
-      setSearchError("An error occurred while searching. Please try again.");
-    }
-  };
-
   const handleLogout = () => {
     logout().then(() => navigate("/login"));
+  };
+
+  const goToSearch = () => {
+    navigate("/search");
   };
 
   if (location.pathname === "/login" || location.pathname === "/signup") {
@@ -84,43 +58,15 @@ function Navbar() {
             </Link>
           </div>
 
-          {/* Search Bar (hidden on mobile) */}
+          {/* Search Button (center) */}
           <div className="hidden md:flex items-center justify-center flex-1 px-2 lg:px-6">
-            <form onSubmit={handleSearch} className="flex items-center w-full max-w-md relative">
-              <div className="flex-shrink-0 flex rounded-l-md overflow-hidden">
-                <select
-                  value={searchType}
-                  onChange={(e) => setSearchType(e.target.value)}
-                  className="p-2 text-black outline-none border-r border-gray-300 focus:ring-2 focus:ring-blue-300 bg-white"
-                >
-                  <option value="all">All</option>
-                  <option value="title">Title</option>
-                  <option value="author">Author</option>
-                  <option value="isbn">ISBN</option>
-                </select>
-              </div>
-              
-              <input
-                type="text"
-                placeholder={`Search by ${searchType}...`}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="p-2 pl-4 w-full text-black outline-none focus:ring-2 focus:ring-blue-300"
-              />
-              
-              <button
-                type="submit"
-                className="bg-green-500 px-4 py-2 rounded-r-md hover:bg-green-600 transition flex items-center"
-              >
-                <IoMdSearch className="text-xl" />
-              </button>
-              
-              {searchError && (
-                <p className="absolute top-full left-0 text-red-300 text-sm mt-1 bg-gray-900 bg-opacity-80 px-2 py-1 rounded">
-                  {searchError}
-                </p>
-              )}
-            </form>
+            <button
+              onClick={goToSearch}
+              className="bg-green-500 px-4 py-2 rounded-md hover:bg-green-600 transition flex items-center"
+            >
+              <IoMdSearch className="text-xl mr-2" />
+              <span>Search Books</span>
+            </button>
           </div>
 
           {/* Navigation Links (hidden on mobile) */}
@@ -217,36 +163,15 @@ function Navbar() {
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
         <div className="md:hidden bg-blue-800 px-2 pt-2 pb-4 space-y-1 sm:px-3">
-          <form onSubmit={handleSearch} className="flex items-center mb-3 relative">
-            <select
-              value={searchType}
-              onChange={(e) => setSearchType(e.target.value)}
-              className="p-2 text-black rounded-l-md outline-none border-none"
-            >
-              <option value="all">All</option>
-              <option value="title">Title</option>
-              <option value="author">Author</option>
-              <option value="isbn">ISBN</option>
-            </select>
-            <input
-              type="text"
-              placeholder={`Search...`}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="p-2 pl-4 w-full text-black outline-none border-none"
-            />
-            <button
-              type="submit"
-              className="bg-green-500 px-4 py-2 rounded-r-md hover:bg-green-600 transition"
-            >
-              <IoMdSearch />
-            </button>
-            {searchError && (
-              <p className="absolute top-full left-0 text-red-300 text-sm mt-1 bg-gray-900 bg-opacity-80 px-2 py-1 rounded">
-                {searchError}
-              </p>
-            )}
-          </form>
+          <button
+            onClick={() => {
+              goToSearch();
+              setIsMobileMenuOpen(false);
+            }}
+            className="flex items-center w-full bg-green-500 px-3 py-2 rounded-md text-base font-medium hover:bg-green-600 transition mb-2"
+          >
+            <IoMdSearch className="mr-2" /> Search Books
+          </button>
 
           <Link
             to="/home"

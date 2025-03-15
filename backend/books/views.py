@@ -141,6 +141,82 @@ def search_books(request):
             return JsonResponse({"error": f"Failed to fetch books: {str(e)}"}, status=500)
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
+@csrf_exempt
+def get_book_details(request, book_id):
+    """Get detailed information about a specific book"""
+    if request.method == "GET":
+        try:
+            # Fetch book details from Google Books API
+            url = f"{GOOGLE_BOOKS_API_URL}/{book_id}"
+            params = {
+                "key": settings.GOOGLE_BOOKS_API_KEY
+            }
+            response = requests.get(url, params=params)
+            response.raise_for_status()
+            book_data = response.json()
+            logger.info(f"Book API response for {book_id}: {book_data}")  # Add this
+            
+            # Extract and format the relevant information
+            volume_info = book_data.get("volumeInfo", {})
+            image_links = volume_info.get("imageLinks", {})
+            logger.info(f"Image links: {image_links}")  # Add this
+            
+            # Get higher quality image if available
+            image_url = image_links.get("thumbnail", 
+                        image_links.get("small", 
+                        image_links.get("medium", 
+                        image_links.get("large", ""))))
+            
+            # Get industry identifiers (ISBN, etc.)
+            industry_identifiers = volume_info.get("industryIdentifiers", [])
+            isbn = ""
+            isbn13 = ""
+            for identifier in industry_identifiers:
+                if identifier.get("type") == "ISBN_10":
+                    isbn = identifier.get("identifier", "")
+                elif identifier.get("type") == "ISBN_13":
+                    isbn13 = identifier.get("identifier", "")
+            
+            # Format book details
+            book_details = {
+                "id": book_data.get("id", ""),
+                "title": volume_info.get("title", "Unknown Title"),
+                "subtitle": volume_info.get("subtitle", ""),
+                "authors": volume_info.get("authors", ["Unknown Author"]),
+                "publisher": volume_info.get("publisher", "Unknown Publisher"),
+                "publishedDate": volume_info.get("publishedDate", ""),
+                "description": volume_info.get("description", "No description available"),
+                "pageCount": volume_info.get("pageCount", 0),
+                "categories": volume_info.get("categories", []),
+                "averageRating": volume_info.get("averageRating", 0),
+                "ratingsCount": volume_info.get("ratingsCount", 0),
+                "language": volume_info.get("language", ""),
+                "previewLink": volume_info.get("previewLink", ""),
+                "infoLink": volume_info.get("infoLink", ""),
+                "buyLink": book_data.get("saleInfo", {}).get("buyLink", ""),
+                "isbn": isbn,
+                "isbn13": isbn13,
+                "image": image_url,
+                "thumbnail": image_links.get("thumbnail", ""),
+            }
+            
+            # Check for user-specific data if logged in
+            if request.user.is_authenticated:
+                # TODO: Add logic to check if book is in user's bookshelf
+                # For now, we'll just include placeholder fields
+                book_details["in_bookshelf"] = False
+                book_details["status"] = None
+            
+            return JsonResponse(book_details, safe=False)
+            
+        except requests.RequestException as e:
+            return JsonResponse({"error": f"Failed to fetch book details: {str(e)}"}, status=500)
+        except Exception as e:
+            logger.error(f"Error processing book details: {str(e)}")
+            return JsonResponse({"error": f"Error processing book details: {str(e)}"}, status=500)
+            
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
 @login_required
 @csrf_exempt
 def get_personalized_recommendations(request):
