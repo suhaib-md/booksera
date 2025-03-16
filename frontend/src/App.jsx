@@ -11,6 +11,8 @@ import Bookshelf from "./pages/Bookshelf";
 import Search from "./pages/Search";  
 import BookDetail from "./pages/BookDetail";
 import MoodRecommendations from "./pages/MoodRecommendations";
+import Communities from "./pages/Communities";
+import BookClubDetail from "./pages/BookClubDetail";
 
 
 function App() {
@@ -39,6 +41,8 @@ function AppContent() {
           <Route path="/search" element={<Search />} />
           <Route path="/book/:bookId" element={<BookDetail />} />
           <Route path="/mood" element={<MoodRecommendations />} />
+          <Route path="/communities" element={<Communities />} />
+          <Route path="/communities/:clubId" element={<BookClubDetail />} />
         </Routes>
       </ErrorBoundary>
     </>
