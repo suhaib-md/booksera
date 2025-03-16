@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
+import BookSummaryContainer from "../components/BookSummaryContainer";
 
 function BookDetail() {
   const { bookId } = useParams();
@@ -251,6 +252,11 @@ function BookDetail() {
               className="prose max-w-none"
               dangerouslySetInnerHTML={{ __html: book.description }}
             />
+          </div>
+
+          <div className="p-8 border-t border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">AI Summary</h3>
+            <BookSummaryContainer bookId={bookId} bookTitle={book.title} />
           </div>
 
           <div className="p-8 bg-gray-50 border-t border-gray-200">

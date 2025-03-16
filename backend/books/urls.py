@@ -7,4 +7,6 @@ urlpatterns = [
     path("api/personalized-recommendations/", get_personalized_recommendations, name="personalized_recommendations"),
     path('api/book/<str:book_id>/', get_book_details, name='get_book_details'),
     path('api/mood-recommendations/', get_mood_recommendations, name='mood_recommendations'),
+    path('api/books/<str:book_id>/summary/', get_book_summary, name='book_summary'),
+    path('api/books/advanced-summary/', get_advanced_book_summary, name='advanced_book_summary'),
 ]

@@ -6,7 +6,11 @@ from users.models import CustomUser
 import random
 from django.conf import settings
 from transformers import pipeline, AutoTokenizer, AutoModel
+from transformers import BartForConditionalGeneration, BartTokenizer, T5ForConditionalGeneration, T5Tokenizer
 import logging
+import os
+import time
+from django.core.cache import cache
 import numpy as np
 from numpy import dot
 from numpy.linalg import norm
@@ -14,6 +18,7 @@ import torch
 from collections import defaultdict
 from sklearn.metrics.pairwise import cosine_similarity
 import json
+from functools import lru_cache
 from sentence_transformers import SentenceTransformer
 
 logger = logging.getLogger(__name__)
@@ -1221,3 +1226,250 @@ def get_enhanced_mood_description(mood, user=None):
         base_description += f", {personalized_text}"
     
     return base_description
+
+# Initialize models lazily to avoid loading them until needed
+_models = {}
+
+def get_model(model_name="bart", max_retries=5):
+    """Lazy-load AI models to save memory with retry logic"""
+    if model_name in _models:
+        return _models[model_name]
+        
+    logger.info(f"Loading {model_name} model for summarization...")
+    
+    # Retry logic for model loading
+    for attempt in range(max_retries):
+        try:
+            if model_name == "bart":
+                tokenizer = BartTokenizer.from_pretrained(
+                    "facebook/bart-large-cnn",
+                    local_files_only=False,  # Allow downloading if not in cache
+                    use_fast=True
+                )
+                model = BartForConditionalGeneration.from_pretrained(
+                    "facebook/bart-large-cnn",
+                    local_files_only=False
+                )
+            elif model_name == "t5":
+                tokenizer = T5Tokenizer.from_pretrained("t5-base", local_files_only=False)
+                model = T5ForConditionalGeneration.from_pretrained("t5-base", local_files_only=False)
+            else:
+                raise ValueError(f"Unsupported model: {model_name}")
+                
+            _models[model_name] = {
+                "model": model,
+                "tokenizer": tokenizer
+            }
+            
+            return _models[model_name]
+        
+        except Exception as e:
+            if attempt < max_retries - 1:
+                # Exponential backoff with jitter
+                wait_time = (2 ** attempt) + random()
+                logger.warning(f"Attempt {attempt+1} failed to load model: {str(e)}. Retrying in {wait_time:.2f} seconds...")
+                time.sleep(wait_time)
+            else:
+                logger.error(f"Failed to load model after {max_retries} attempts: {str(e)}")
+                raise
+
+def summarize_text(text, model_name="bart", max_length=150, min_length=40):
+    """Summarize text using the specified model"""
+    if not text or len(text) < 100:
+        return "Text is too short to summarize."
+        
+    # Create a cache key based on text, model and length parameters
+    cache_key = f"summary_{model_name}_{hash(text)}_{max_length}_{min_length}"
+    cached_summary = cache.get(cache_key)
+    if cached_summary:
+        return cached_summary
+    
+    # Get model and tokenizer
+    try:
+        model_dict = get_model(model_name)
+        model = model_dict["model"]
+        tokenizer = model_dict["tokenizer"]
+        
+        # Ensure text is within model token limits - BART can handle ~1024 tokens
+        inputs = tokenizer(text, return_tensors="pt", max_length=1024, truncation=True)
+        
+        # Generate summary
+        if model_name == "bart":
+            summary_ids = model.generate(
+                inputs["input_ids"],
+                max_length=max_length,
+                min_length=min_length,
+                length_penalty=2.0,
+                num_beams=4,
+                early_stopping=True
+            )
+            summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+        elif model_name == "t5":
+            # T5 requires a "summarize: " prefix
+            input_text = "summarize: " + text
+            inputs = tokenizer(input_text, return_tensors="pt", max_length=512, truncation=True)
+            summary_ids = model.generate(
+                inputs["input_ids"],
+                max_length=max_length,
+                min_length=min_length,
+                length_penalty=2.0,
+                num_beams=4,
+                early_stopping=True
+            )
+            summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+        
+        # Cache the result for 24 hours
+        cache.set(cache_key, summary, 60*60*24)
+        return summary
+        
+    except Exception as e:
+        logger.error(f"Error generating summary: {str(e)}")
+        return f"Error generating summary: {str(e)}"
+
+@csrf_exempt
+@login_required
+def get_book_summary(request, book_id):
+    """Generate or retrieve AI summary for a book"""
+    if request.method != "GET":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    
+    # Get parameters
+    model_type = request.GET.get("model", "bart")  # default to BART
+    max_length = int(request.GET.get("max_length", 150))
+    min_length = int(request.GET.get("min_length", 40))
+    
+    try:
+        # First check if we already have this summary cached
+        cache_key = f"book_summary_{book_id}_{model_type}_{max_length}_{min_length}"
+        cached_summary = cache.get(cache_key)
+        
+        if cached_summary:
+            return JsonResponse({
+                "book_id": book_id,
+                "summary": cached_summary,
+                "model": model_type,
+                "source": "cache"
+            })
+        
+        # No cached summary, so get book details
+        url = f"{GOOGLE_BOOKS_API_URL}/{book_id}"
+        params = {
+            "key": settings.GOOGLE_BOOKS_API_KEY
+        }
+        
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        book_data = response.json()
+        
+        volume_info = book_data.get("volumeInfo", {})
+        description = volume_info.get("description", "")
+        
+        if not description or len(description) < 100:
+            return JsonResponse({
+                "book_id": book_id,
+                "summary": "Insufficient description to generate a summary.",
+                "model": model_type,
+                "error": "description_too_short"
+            })
+        
+        # Generate summary
+        summary = summarize_text(description, model_type, max_length, min_length)
+        
+        # Cache the result
+        cache.set(cache_key, summary, 60*60*24*7)  # Cache for 7 days
+        
+        # Return the summary
+        return JsonResponse({
+            "book_id": book_id,
+            "title": volume_info.get("title", "Unknown Title"),
+            "summary": summary,
+            "model": model_type,
+            "source": "generated"
+        })
+        
+    except requests.RequestException as e:
+        logger.error(f"Error fetching book details for summary: {str(e)}")
+        return JsonResponse({"error": f"Failed to fetch book details: {str(e)}"}, status=500)
+    except Exception as e:
+        logger.error(f"Error generating book summary: {str(e)}")
+        return JsonResponse({"error": f"Error generating summary: {str(e)}"}, status=500)
+
+# Advanced summarization with customizable parameters
+@csrf_exempt
+@login_required
+def get_advanced_book_summary(request):
+    """Generate customized AI summary for a book or provided text"""
+    if request.method == "POST":
+        try:
+            # Get request data
+            data = json.loads(request.body)
+            
+            book_id = data.get("book_id")
+            custom_text = data.get("text")
+            model_type = data.get("model", "bart")
+            max_length = int(data.get("max_length", 150))
+            min_length = int(data.get("min_length", 40))
+            summary_style = data.get("style", "standard")  # Options: standard, concise, detailed
+            
+            # Adjust length based on style
+            if summary_style == "concise":
+                max_length = min(max_length, 100)
+                min_length = min(min_length, 30)
+            elif summary_style == "detailed":
+                max_length = max(max_length, 200)
+                min_length = max(min_length, 60)
+            
+            # Get the text to summarize (either from book or provided directly)
+            text_to_summarize = ""
+            title = "Custom Text"
+            
+            if book_id:
+                # Get book details from API
+                url = f"{GOOGLE_BOOKS_API_URL}/{book_id}"
+                params = {
+                    "key": settings.GOOGLE_BOOKS_API_KEY
+                }
+                
+                response = requests.get(url, params=params)
+                response.raise_for_status()
+                book_data = response.json()
+                
+                volume_info = book_data.get("volumeInfo", {})
+                text_to_summarize = volume_info.get("description", "")
+                title = volume_info.get("title", "Unknown Title")
+            elif custom_text:
+                text_to_summarize = custom_text
+            else:
+                return JsonResponse({
+                    "error": "Either book_id or custom text must be provided"
+                }, status=400)
+            
+            if not text_to_summarize or len(text_to_summarize) < 100:
+                return JsonResponse({
+                    "error": "Insufficient text to generate a summary",
+                    "model": model_type
+                }, status=400)
+            
+            # Generate summary
+            summary = summarize_text(text_to_summarize, model_type, max_length, min_length)
+            
+            # Return the summary
+            return JsonResponse({
+                "title": title,
+                "summary": summary,
+                "model": model_type,
+                "style": summary_style,
+                "word_count": len(summary.split()),
+                "original_length": len(text_to_summarize.split())
+            })
+            
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
+        except requests.RequestException as e:
+            logger.error(f"Error fetching book details for advanced summary: {str(e)}")
+            return JsonResponse({"error": f"Failed to fetch book details: {str(e)}"}, status=500)
+        except Exception as e:
+            logger.error(f"Error generating advanced book summary: {str(e)}")
+            return JsonResponse({"error": f"Error generating summary: {str(e)}"}, status=500)
+    
+    return JsonResponse({"error": "Method not allowed"}, status=405)
