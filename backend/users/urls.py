@@ -16,5 +16,7 @@ urlpatterns = [
     path('bookshelf/update/', update_bookshelf_status, name='update_bookshelf_status'),
     path('bookshelf/remove/', remove_from_bookshelf, name='remove_from_bookshelf'),
     path('unauthorized/', unauthorized, name='unauthorized'),
+    path('profile/reading-goal/', reading_goal_view, name='reading_goal'),
+    path('profile/reading-goal/update/', update_reading_goal, name='update_reading_goal'),
 ]
 

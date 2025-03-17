@@ -12,6 +12,7 @@ from .models import UserPreferences, CustomUser, Bookshelf
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.conf import settings
+from datetime import datetime
 
 @csrf_exempt
 def check_auth_status(request):
@@ -255,25 +256,45 @@ def update_bookshelf_status(request):
             data = json.loads(request.body)
             book_id = data.get("book_id")
             new_status = data.get("status")
-
+            
             if not book_id or not new_status:
                 return JsonResponse({"error": "Book ID and status are required"}, status=400)
-
+            
             try:
                 bookshelf_item = Bookshelf.objects.get(user=request.user, book_id=book_id)
                 old_status = bookshelf_item.status
                 bookshelf_item.status = new_status
                 bookshelf_item.save()
-
-                # Update books_read field accordingly
+                
+                # Update books_read field and reading goal accordingly
+                current_year = datetime.now().year
+                
+                # Ensure reading_goal_year is current
+                if request.user.reading_goal_year != current_year:
+                    request.user.reading_goal_year = current_year
+                    request.user.reading_goal_completed = 0
+                
+                # Handle marking as read
                 if new_status == "read" and book_id not in request.user.books_read:
                     request.user.books_read.append(book_id)
+                    # Increment reading goal only if not already counted
+                    request.user.reading_goal_completed += 1
                     request.user.save()
+                # Handle unmarking as read
                 elif new_status == "to_read" and book_id in request.user.books_read:
                     request.user.books_read.remove(book_id)
+                    # Decrement reading goal only if already counted and greater than 0
+                    if request.user.reading_goal_completed > 0:
+                        request.user.reading_goal_completed -= 1
                     request.user.save()
-
-                return JsonResponse({"message": "Bookshelf status updated"}, status=200)
+                
+                return JsonResponse({
+                    "message": "Bookshelf status updated",
+                    "reading_goal": {
+                        "target": request.user.reading_goal_target,
+                        "completed": request.user.reading_goal_completed
+                    }
+                }, status=200)
             except Bookshelf.DoesNotExist:
                 return JsonResponse({"error": "Book not found in bookshelf"}, status=404)
         except json.JSONDecodeError:
@@ -293,9 +314,13 @@ def remove_from_bookshelf(request):
             
             try:
                 bookshelf_item = Bookshelf.objects.get(user=request.user, book_id=book_id)
-                # If the book was marked as read, remove it from books_read list
+                
+                # If the book was marked as read, remove it from books_read
                 if bookshelf_item.status == "read" and book_id in request.user.books_read:
                     request.user.books_read.remove(book_id)
+                    # Decrement reading goal if appropriate
+                    if request.user.reading_goal_completed > 0:
+                        request.user.reading_goal_completed -= 1
                     request.user.save()
                 
                 # Delete the bookshelf item
@@ -306,4 +331,139 @@ def remove_from_bookshelf(request):
                 return JsonResponse({"error": "Book not found in bookshelf"}, status=404)
         except json.JSONDecodeError:
             return JsonResponse({"error": "Invalid JSON"}, status=400)
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+@csrf_exempt
+@login_required
+def get_reading_goal(request):
+    if request.method == "GET":
+        try:
+            user = request.user
+            current_year = datetime.now().year
+            
+            # If user's goal is from a previous year, reset it for the current year
+            if user.reading_goal_year != current_year:
+                user.reading_goal_year = current_year
+                user.reading_goal_completed = 0
+                # Keep the same target or set to 0 if you prefer to reset it
+                user.save()
+            
+            return JsonResponse({
+                "target": user.reading_goal_target,
+                "completed": user.reading_goal_completed,
+                "year": user.reading_goal_year
+            }, status=200)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+    
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+@csrf_exempt
+@login_required
+def update_reading_goal(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            target = data.get("target")
+            
+            if target is None:
+                return JsonResponse({"error": "Target is required"}, status=400)
+            
+            # Ensure target is a positive integer
+            try:
+                target = int(target)
+                if target < 0:
+                    raise ValueError("Target must be a positive number")
+            except ValueError:
+                return JsonResponse({"error": "Target must be a positive number"}, status=400)
+            
+            user = request.user
+            current_year = datetime.now().year
+            
+            # Update user's reading goal
+            user.reading_goal_target = target
+            
+            # If it's a new year, reset the completed count
+            if user.reading_goal_year != current_year:
+                user.reading_goal_year = current_year
+                user.reading_goal_completed = 0
+            
+            user.save()
+            
+            return JsonResponse({
+                "message": "Reading goal updated successfully",
+                "target": user.reading_goal_target,
+                "completed": user.reading_goal_completed,
+                "year": user.reading_goal_year
+            }, status=200)
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+    
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+@csrf_exempt
+@login_required
+def reading_goal_view(request):
+    if request.method == "GET":
+        try:
+            user = request.user
+            current_year = datetime.now().year
+            
+            # If user's goal is from a previous year, reset it for the current year
+            if user.reading_goal_year != current_year:
+                user.reading_goal_year = current_year
+                user.reading_goal_completed = 0
+                # Keep the same target or set to 0 if you prefer to reset it
+                user.save()
+            
+            return JsonResponse({
+                "target": user.reading_goal_target,
+                "completed": user.reading_goal_completed,
+                "year": user.reading_goal_year
+            }, status=200)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+    
+    elif request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            target = data.get("target")
+            
+            if target is None:
+                return JsonResponse({"error": "Target is required"}, status=400)
+            
+            # Ensure target is a positive integer
+            try:
+                target = int(target)
+                if target < 0:
+                    raise ValueError("Target must be a positive number")
+            except ValueError:
+                return JsonResponse({"error": "Target must be a positive number"}, status=400)
+            
+            user = request.user
+            current_year = datetime.now().year
+            
+            # Update user's reading goal
+            user.reading_goal_target = target
+            
+            # If it's a new year, reset the completed count
+            if user.reading_goal_year != current_year:
+                user.reading_goal_year = current_year
+                user.reading_goal_completed = 0
+            
+            user.save()
+            
+            return JsonResponse({
+                "message": "Reading goal updated successfully",
+                "target": user.reading_goal_target,
+                "completed": user.reading_goal_completed,
+                "year": user.reading_goal_year
+            }, status=200)
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+    
     return JsonResponse({"error": "Method not allowed"}, status=405)

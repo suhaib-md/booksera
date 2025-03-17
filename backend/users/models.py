@@ -11,6 +11,9 @@ class CustomUser(AbstractUser):
     favorite_genres = models.CharField(max_length=255, blank=True, null=True)
     favorite_authors = models.CharField(max_length=255, blank=True, null=True)
     books_read = models.JSONField(default=list, help_text="List of books read")
+    reading_goal_target = models.IntegerField(default=0)
+    reading_goal_completed = models.IntegerField(default=0)
+    reading_goal_year = models.IntegerField(default=2025)
     
     USERNAME_FIELD = 'email'  # ✅ Authenticate using email by default
     REQUIRED_FIELDS = ['username']  # ✅ Username is still required
