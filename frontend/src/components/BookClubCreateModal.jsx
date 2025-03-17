@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { backendAPI } from "../utils/api";
 
 function BookClubCreateModal({ onClose, onSuccess, categories }) {
   const [formData, setFormData] = useState({
@@ -25,8 +26,8 @@ function BookClubCreateModal({ onClose, onSuccess, categories }) {
     setError("");
 
     try {
-      await axios.post(
-        "http://localhost:8000/api/book-clubs/create/",
+      await backendAPI.post(
+        "/book-clubs/create/",
         formData,
         { withCredentials: true }
       );

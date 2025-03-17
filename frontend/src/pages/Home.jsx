@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import AuthGuard from "../components/AuthGuard";
 import { useAuth } from "../components/AuthContext";
+import { backendAPI, externalAPI } from '../utils/api';
 
 function Home() {
   const { user } = useAuth();
@@ -29,8 +30,8 @@ function Home() {
     setLoading(true);
     setError("");
     try {
-      const response = await axios.get(
-        "http://localhost:8000/api/personalized-recommendations/",
+      const response = await backendAPI.get(
+        "/personalized-recommendations/",
         { withCredentials: true }
       );
       console.log("Recommendations response:", response.data);
@@ -53,7 +54,7 @@ function Home() {
     setTrendingLoading(true);
     setTrendingError("");
     try {
-      const response = await axios.get(
+      const response = await externalAPI.get(
         `https://www.googleapis.com/books/v1/volumes?q=best+books&orderBy=relevance&maxResults=16&startIndex=${startIndex}&key=${import.meta.env.VITE_GOOGLE_BOOKS_API_KEY}`
       );
       
@@ -88,8 +89,8 @@ function Home() {
         image: book.image || book.volumeInfo?.imageLinks?.thumbnail || "",
         status,
       };
-      await axios.post(
-        "http://localhost:8000/api/bookshelf/add/",
+      await backendAPI.post(
+        "/bookshelf/add/",
         bookData,
         { withCredentials: true }
       );

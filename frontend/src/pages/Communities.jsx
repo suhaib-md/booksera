@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import AuthGuard from "../components/AuthGuard";
 import BookClubCard from "../components/BookClubCard";
 import BookClubCreateModal from "../components/BookClubCreateModal";
+import { backendAPI, externalAPI } from "../utils/api";
 
 function Communities() {
   const [bookClubs, setBookClubs] = useState([]);
@@ -47,7 +48,7 @@ function Communities() {
     setError("");
     try {
       // Build query params
-      let url = "http://localhost:8000/api/book-clubs/";
+      let url = "/book-clubs/";
       const params = new URLSearchParams();
       
       if (searchQuery) {
@@ -62,7 +63,7 @@ function Communities() {
         url += `?${params.toString()}`;
       }
       
-      const response = await axios.get(url, { withCredentials: true });
+      const response = await backendAPI.get(url, { withCredentials: true });
       setBookClubs(response.data.book_clubs || []);
     } catch (error) {
       console.error("Error fetching book clubs:", error);
@@ -75,8 +76,8 @@ function Communities() {
   const fetchMyBookClubs = async () => {
     setMyClubsLoading(true);
     try {
-      const response = await axios.get(
-        "http://localhost:8000/api/book-clubs/my-clubs/",
+      const response = await backendAPI.get(
+        "/book-clubs/my-clubs/",
         { withCredentials: true }
       );
       setMyBookClubs(response.data.book_clubs || []);
@@ -95,8 +96,8 @@ function Communities() {
 
   const handleJoinClub = async (clubId) => {
     try {
-      await axios.post(
-        `http://localhost:8000/api/book-clubs/${clubId}/join/`,
+      await backendAPI.post(
+        `/book-clubs/${clubId}/join/`,
         {},
         { withCredentials: true }
       );

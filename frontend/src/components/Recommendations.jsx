@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useAuth } from "../components/AuthContext";
+import { backendAPI } from "../utils/api";
 
 function Recommendations() {
   const { user } = useAuth();
@@ -11,8 +12,8 @@ function Recommendations() {
   useEffect(() => {
     const fetchRecommendations = async () => {
       try {
-        const response = await axios.get(
-          "http://localhost:8000/api/personalized-recommendations/",
+        const response = await backendAPI.get(
+          "/personalized-recommendations/",
           { withCredentials: true }
         );
         setRecommendations(response.data.books || []);
@@ -38,7 +39,7 @@ function Recommendations() {
         image: book.image || "",
         status,
       };
-      await axios.post("http://localhost:8000/api/bookshelf/add/", bookData, {
+      await backendAPI.post("/bookshelf/add/", bookData, {
         withCredentials: true,
       });
       alert(`Book added to ${status === "to_read" ? "To Read" : "Read"}!`);

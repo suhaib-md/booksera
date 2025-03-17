@@ -1,36 +1,70 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
+import { backendAPI } from "../utils/api";
+
+// Configure axios to include credentials in requests
+axios.defaults.withCredentials = true;
 
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const fetchUserProfile = async () => {
+  // Check authentication status without causing redirects
+  const checkAuthStatus = async () => {
     try {
-      const response = await axios.get("http://localhost:8000/api/profile/", {
-        withCredentials: true,
-      });
-      setUser(response.data);
+      const response = await backendAPI.get("/auth-status/");
+      if (response.data.authenticated) {
+        setUser({
+          username: response.data.username,
+          email: response.data.email
+        });
+        setIsAuthenticated(true);
+      } else {
+        setUser(null);
+        setIsAuthenticated(false);
+      }
     } catch (error) {
-      console.error("Error fetching user profile:", error);
+      console.error("Auth check failed:", error);
       setUser(null);
+      setIsAuthenticated(false);
     } finally {
       setLoading(false);
     }
   };
 
+  // Fetch the full user profile - only when we know we're authenticated
+  const fetchUserProfile = async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      const response = await backendAPI.get("/profile/");
+      setUser(response.data);
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+    }
+  };
+
+  // Initial authentication check
   useEffect(() => {
-    fetchUserProfile(); // Fetch on initial load
+    checkAuthStatus();
   }, []);
+
+  // Get full profile when authentication state changes to true
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchUserProfile();
+    }
+  }, [isAuthenticated]);
 
   const login = async (credentials) => {
     try {
-      await axios.post("http://localhost:8000/api/login/", credentials, {
-        withCredentials: true,
-      });
-      await fetchUserProfile(); // Fetch profile after login
+      await backendAPI.post("/login/", credentials);
+      await checkAuthStatus(); // First verify authentication
+      await fetchUserProfile(); // Then get full profile
+      return true;
     } catch (error) {
       console.error("Login failed:", error);
       throw error;
@@ -39,17 +73,27 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     try {
-      await axios.post("http://localhost:8000/api/logout/", {}, { withCredentials: true });
+      await backendAPI.post("/logout/");
       setUser(null);
+      setIsAuthenticated(false);
     } catch (error) {
       console.error("Logout failed:", error);
     }
   };
 
-  // Expose setUser to consumers
   return (
-    <AuthContext.Provider value={{ user, setUser, login, logout, loading }}>
-      {!loading && children}
+    <AuthContext.Provider 
+      value={{ 
+        user, 
+        setUser, 
+        isAuthenticated, 
+        login, 
+        logout, 
+        loading,
+        refreshProfile: fetchUserProfile 
+      }}
+    >
+      {children}
     </AuthContext.Provider>
   );
 }

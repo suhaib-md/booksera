@@ -13,6 +13,16 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.conf import settings
 
+@csrf_exempt
+def check_auth_status(request):
+    if request.user.is_authenticated:
+        return JsonResponse({
+            "authenticated": True,
+            "email": request.user.email,
+            "username": request.user.username
+        })
+    else:
+        return JsonResponse({"authenticated": False}, status=200)
 
 @csrf_exempt
 def signup(request):
@@ -264,6 +274,34 @@ def update_bookshelf_status(request):
                     request.user.save()
 
                 return JsonResponse({"message": "Bookshelf status updated"}, status=200)
+            except Bookshelf.DoesNotExist:
+                return JsonResponse({"error": "Book not found in bookshelf"}, status=404)
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+@csrf_exempt
+@login_required
+def remove_from_bookshelf(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            book_id = data.get("book_id")
+            
+            if not book_id:
+                return JsonResponse({"error": "Book ID is required"}, status=400)
+            
+            try:
+                bookshelf_item = Bookshelf.objects.get(user=request.user, book_id=book_id)
+                # If the book was marked as read, remove it from books_read list
+                if bookshelf_item.status == "read" and book_id in request.user.books_read:
+                    request.user.books_read.remove(book_id)
+                    request.user.save()
+                
+                # Delete the bookshelf item
+                bookshelf_item.delete()
+                
+                return JsonResponse({"message": "Book removed from bookshelf"}, status=200)
             except Bookshelf.DoesNotExist:
                 return JsonResponse({"error": "Book not found in bookshelf"}, status=404)
         except json.JSONDecodeError:

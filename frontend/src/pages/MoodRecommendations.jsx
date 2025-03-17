@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import AuthGuard from "../components/AuthGuard";
 import { useAuth } from "../components/AuthContext";
+import { backendAPI } from "../utils/api";
 
 function MoodRecommendations() {
   const { user } = useAuth();
@@ -35,8 +36,8 @@ function MoodRecommendations() {
     setLoading(true);
     setError("");
     try {
-      const response = await axios.get(
-        `http://localhost:8000/api/mood-recommendations/?mood=${mood}`,
+      const response = await backendAPI.get(
+        `/mood-recommendations/?mood=${mood}`,
         { withCredentials: true }
       );
       console.log("Mood recommendations response:", response.data);
@@ -73,8 +74,8 @@ function MoodRecommendations() {
         image: book.image || "",
         status,
       };
-      await axios.post(
-        "http://localhost:8000/api/bookshelf/add/",
+      await backendAPI.post(
+        '/bookshelf/add/',
         bookData,
         { withCredentials: true }
       );

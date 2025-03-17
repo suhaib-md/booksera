@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './BookSummaryStyles.css';
+import { backendAPI } from '../utils/api';
 
 const BookSummary = ({ bookId }) => {
   const [summary, setSummary] = useState('');
@@ -16,8 +17,8 @@ const BookSummary = ({ bookId }) => {
     setError(null);
     
     try {
-        const response = await axios.get(
-            `http://localhost:8000/api/books/${bookId}/summary/?model=${model}`,
+        const response = await backendAPI.get(
+            `/books/${bookId}/summary/?model=${model}`,
             { withCredentials: true }
           );
       setSummary(response.data.summary);

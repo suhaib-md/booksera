@@ -2,6 +2,7 @@ from django.urls import path
 from .views import *
 
 urlpatterns = [
+    path('auth-status/', check_auth_status, name='check_auth_status'),
     path('signup/', signup, name='signup'),
     path('login/', login_view, name='login'),
     path('user/', get_user_data, name='get_user_data'),
@@ -13,6 +14,7 @@ urlpatterns = [
     path('bookshelf/add/', add_to_bookshelf, name='add_to_bookshelf'),
     path('bookshelf/', get_bookshelf, name='get_bookshelf'),
     path('bookshelf/update/', update_bookshelf_status, name='update_bookshelf_status'),
+    path('bookshelf/remove/', remove_from_bookshelf, name='remove_from_bookshelf'),
     path('unauthorized/', unauthorized, name='unauthorized'),
 ]
 

@@ -31,6 +31,9 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
+LOGIN_URL = '/api/login/'
+LOGIN_REDIRECT_URL = '/api/user/'
+
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-f&hk6tfumkii_p1bpp)f#35r#o&!b+6&&@myqb!umb!2799yco'
 

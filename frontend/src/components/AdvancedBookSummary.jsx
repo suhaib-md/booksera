@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import './BookSummaryStyles.css';
+import { backendAPI } from '../utils/api';
 
 const AdvancedBookSummary = ({ bookId, bookTitle }) => {
   const [summary, setSummary] = useState('');
@@ -33,8 +34,8 @@ const AdvancedBookSummary = ({ bookId, bookTitle }) => {
         payload.book_id = bookId;
       }
       
-      const response = await axios.post(
-        `http://localhost:8000/api/books/advanced-summary/`, payload,
+      const response = await backendAPI.post(
+        `/books/advanced-summary/`, payload,
         { withCredentials: true }
       );
       setSummary(response.data.summary);

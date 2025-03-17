@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import BookSummaryContainer from "../components/BookSummaryContainer";
+import { backendAPI } from "../utils/api";
 
 function BookDetail() {
   const { bookId } = useParams();
@@ -15,8 +16,8 @@ function BookDetail() {
       setLoading(true);
       setError("");
       try {
-        const response = await axios.get(
-          `http://localhost:8000/api/book/${bookId}/`,
+        const response = await backendAPI.get(
+          `/book/${bookId}/`,
           { withCredentials: true }
         );
         console.log("Book details:", response.data); 
@@ -46,8 +47,8 @@ function BookDetail() {
         image: book.image || book.thumbnail || "",
         status,
       };
-      await axios.post(
-        "http://localhost:8000/api/bookshelf/add/",
+      await backendAPI.post(
+        '/bookshelf/add/',
         bookData,
         { withCredentials: true }
       );

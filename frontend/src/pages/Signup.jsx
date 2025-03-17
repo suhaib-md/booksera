@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../components/AuthContext"; // Import AuthContext
+import { useAuth } from "../components/AuthContext";
+import axios from "axios";
+import { backendAPI } from "../utils/api";
 
 function Signup() {
   const [email, setEmail] = useState("");
@@ -8,21 +10,23 @@ function Signup() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
-  const { login } = useAuth(); // Use login from AuthContext
+  const { login } = useAuth();
 
   const handleSignup = async (e) => {
     e.preventDefault();
     setError("");
 
     try {
-      await axios.post("http://localhost:8000/api/signup/", {
+      // First create the user
+      await backendAPI.post("/signup/", {
         email,
         username,
         password,
       });
-      // After signup, automatically log the user in
+      
+      // Then login with the new credentials
       await login({ identifier: email, password });
-      navigate("/home"); // Redirect to home after signup and login
+      navigate("/home");
     } catch (err) {
       setError(err.response?.data?.error || "Signup failed!");
     }

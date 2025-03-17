@@ -1,16 +1,16 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "./AuthContext"; // Import AuthContext
+import { useAuth } from "./AuthContext";
 
 function AuthGuard({ children }) {
   const navigate = useNavigate();
-  const { user, loading } = useAuth(); // Use user and loading from AuthContext
+  const { isAuthenticated, loading } = useAuth(); // Use isAuthenticated instead of user
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!loading && !isAuthenticated) {
       navigate("/login"); // Redirect if not authenticated
     }
-  }, [user, loading, navigate]);
+  }, [isAuthenticated, loading, navigate]);
 
   if (loading) {
     return <div className="h-screen flex items-center justify-center">Checking authentication...</div>;

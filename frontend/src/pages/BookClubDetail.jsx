@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import AuthGuard from "../components/AuthGuard";
 import { BookOpen, Users, Calendar, ArrowLeft, Send } from "lucide-react";
+import { backendAPI,externalAPI } from "../utils/api";
 
 function BookClubDetail() {
   const { clubId } = useParams();
@@ -25,8 +26,8 @@ function BookClubDetail() {
       setLoading(true);
       setError("");
       try {
-        const response = await axios.get(
-          `http://localhost:8000/api/book-clubs/${clubId}/`,
+        const response = await backendAPI.get(
+          `/book-clubs/${clubId}/`,
           { withCredentials: true }
         );
         setBookClub(response.data);
@@ -47,8 +48,8 @@ function BookClubDetail() {
     
     setMessagesLoading(true);
     try {
-      const response = await axios.get(
-        `http://localhost:8000/api/book-clubs/${clubId}/messages/`,
+      const response = await backendAPI.get(
+        `/book-clubs/${clubId}/messages/`,
         { withCredentials: true }
       );
       setMessages(response.data.messages.reverse() || []);
@@ -63,8 +64,8 @@ function BookClubDetail() {
   const fetchMembers = async () => {
     setMembersLoading(true);
     try {
-      const response = await axios.get(
-        `http://localhost:8000/api/book-clubs/${clubId}/members/`,
+      const response = await backendAPI.get(
+        `/book-clubs/${clubId}/members/`,
         { withCredentials: true }
       );
       setMembers(response.data.members || []);
@@ -105,8 +106,8 @@ function BookClubDetail() {
     
     setSendingMessage(true);
     try {
-      await axios.post(
-        `http://localhost:8000/api/book-clubs/${clubId}/messages/send/`,
+      await backendAPI.post(
+        `/book-clubs/${clubId}/messages/send/`,
         { content: newMessage },
         { withCredentials: true }
       );
@@ -122,8 +123,8 @@ function BookClubDetail() {
 
   const handleJoinClub = async () => {
     try {
-      await axios.post(
-        `http://localhost:8000/api/book-clubs/${clubId}/join/`,
+      await backendAPI.post(
+        `/book-clubs/${clubId}/join/`,
         {},
         { withCredentials: true }
       );
@@ -141,8 +142,8 @@ function BookClubDetail() {
     }
     
     try {
-      await axios.post(
-        `http://localhost:8000/api/book-clubs/${clubId}/leave/`,
+      await backendAPI.post(
+        `/book-clubs/${clubId}/leave/`,
         {},
         { withCredentials: true }
       );

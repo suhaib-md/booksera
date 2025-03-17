@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import AuthGuard from "../components/AuthGuard";
 import { useAuth } from "../components/AuthContext";
+import { backendAPI,externalAPI } from "../utils/api";
 
 function Bookshelf() {
   const { user } = useAuth();
@@ -24,7 +25,7 @@ function Bookshelf() {
     setLoading(true);
     setError("");
     try {
-      const response = await axios.get("http://localhost:8000/api/bookshelf/", {
+      const response = await backendAPI.get("/bookshelf/", {
         withCredentials: true,
       });
       setToRead(response.data.to_read || []);
@@ -39,8 +40,8 @@ function Bookshelf() {
 
   const updateStatus = async (bookId, newStatus) => {
     try {
-      await axios.post(
-        "http://localhost:8000/api/bookshelf/update/",
+      await backendAPI.post(
+        "/bookshelf/update/",
         { book_id: bookId, status: newStatus },
         { withCredentials: true }
       );
@@ -54,8 +55,8 @@ function Bookshelf() {
 
   const removeFromBookshelf = async (bookId) => {
     try {
-      await axios.post(
-        "http://localhost:8000/api/bookshelf/remove/",
+      await backendAPI.post(
+        "/bookshelf/remove/",
         { book_id: bookId },
         { withCredentials: true }
       );

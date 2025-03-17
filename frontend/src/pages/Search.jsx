@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import AuthGuard from "../components/AuthGuard";
 import { useAuth } from "../components/AuthContext";
+import { backendAPI, externalAPI } from "../utils/api";
 
 function Search() {
   const { user } = useAuth();
@@ -51,7 +52,7 @@ function Search() {
     }
 
     try {
-      const response = await axios.get(
+      const response = await externalAPI.get(
         `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&startIndex=${newStartIndex}&maxResults=${maxResults}&key=${import.meta.env.VITE_GOOGLE_BOOKS_API_KEY}`
       );
       
@@ -84,8 +85,8 @@ function Search() {
         image: book.volumeInfo?.imageLinks?.thumbnail || "",
         status,
       };
-      await axios.post(
-        "http://localhost:8000/api/bookshelf/add/",
+      await backendAPI.post(
+        "/bookshelf/add/",
         bookData,
         { withCredentials: true }
       );

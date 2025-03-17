@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useAuth } from "../components/AuthContext";
+import { backendAPI, externalAPI } from "../utils/api";
 
 function Profile() {
   const { user, setUser } = useAuth();
@@ -28,7 +29,7 @@ function Profile() {
 
     try {
       for (const id of idsToFetch) {
-        const response = await axios.get(
+        const response = await externalAPI.get(
           `https://www.googleapis.com/books/v1/volumes/${id}?key=${import.meta.env.VITE_GOOGLE_BOOKS_API_KEY}`
         );
         titles[id] = response.data.volumeInfo.title;
@@ -54,7 +55,7 @@ function Profile() {
   const handleUpdate = async () => {
     setError("");
     try {
-      const response = await axios.post("http://localhost:8000/api/profile/update/", localUser, {
+      const response = await backendAPI.post("/profile/update/", localUser, {
         withCredentials: true,
       });
       setUser(localUser);
@@ -77,8 +78,8 @@ function Profile() {
 
     setError("");
     try {
-      const response = await axios.post(
-        "http://localhost:8000/api/profile/upload/",
+      const response = await backendAPI.post(
+        "/profile/upload/",
         formData,
         {
           withCredentials: true,
