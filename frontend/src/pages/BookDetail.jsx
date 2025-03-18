@@ -48,7 +48,7 @@ function BookDetail() {
         status,
       };
       await backendAPI.post(
-        '/bookshelf/add/',
+        '/bookshelf/update/',
         bookData,
         { withCredentials: true }
       );

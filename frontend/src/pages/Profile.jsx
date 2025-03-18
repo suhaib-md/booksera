@@ -11,73 +11,73 @@ function Profile() {
   const [bookTitles, setBookTitles] = useState({}); // Cache for book titles
   const [loadingTitles, setLoadingTitles] = useState(false); // Loading state for titles
   
-  // Reading goal state
-  const [readingGoal, setReadingGoal] = useState({
-    target: 0,
-    completed: 0
-  });
-  const [editingGoal, setEditingGoal] = useState(false);
-  const [newGoalTarget, setNewGoalTarget] = useState(0);
+    // Reading goal state
+    const [readingGoal, setReadingGoal] = useState({
+      target: 0,
+      completed: 0
+    });
+    const [editingGoal, setEditingGoal] = useState(false);
+    const [newGoalTarget, setNewGoalTarget] = useState(0);
 
-  // Sync local state with context user and fetch book titles
-  useEffect(() => {
-    if (user) {
-      setLocalUser(user);
-      fetchBookTitles(user.books_read || []);
-      fetchReadingGoal();
-    }
-  }, [user]);
+    // Sync local state with context user and fetch book titles
+    useEffect(() => {
+      if (user) {
+        setLocalUser(user);
+        fetchBookTitles(user.books_read || []);
+        fetchReadingGoal();
+      }
+    }, [user]);
 
-  const fetchReadingGoal = async () => {
-    try {
-      const response = await backendAPI.get("/profile/reading-goal/", {
-        withCredentials: true,
-      });
-      setReadingGoal({
-        target: response.data.target || 0,
-        completed: response.data.completed || 0
-      });
-      setNewGoalTarget(response.data.target || 0);
-    } catch (error) {
-      console.error("Error fetching reading goal:", error);
-      // If endpoint doesn't exist yet, use default values
-      setReadingGoal({
-        target: user?.reading_goal?.target || 0,
-        completed: user?.reading_goal?.completed || 0
-      });
-    }
-  };
+    const fetchReadingGoal = async () => {
+      try {
+        const response = await backendAPI.get("/profile/reading-goal/", {
+          withCredentials: true,
+        });
+        setReadingGoal({
+          target: response.data.target || 0,
+          completed: response.data.completed || 0
+        });
+        setNewGoalTarget(response.data.target || 0);
+      } catch (error) {
+        console.error("Error fetching reading goal:", error);
+        // If endpoint doesn't exist yet, use default values
+        setReadingGoal({
+          target: user?.reading_goal?.target || 0,
+          completed: user?.reading_goal?.completed || 0
+        });
+      }
+    };
 
-  const updateReadingGoal = async () => {
-    try {
-      const response = await backendAPI.post("/profile/reading-goal/", {
-        target: newGoalTarget
-      }, {
-        withCredentials: true,
-      });
-      
-      setReadingGoal({
-        ...readingGoal,
-        target: newGoalTarget
-      });
-      
-      // Update user object with new goal
-      const updatedUser = {
-        ...localUser,
-        reading_goal: {
+    const updateReadingGoal = async () => {
+      try {
+        const response = await backendAPI.post("/profile/reading-goal/", {
+          target: newGoalTarget
+        }, {
+          withCredentials: true,
+        });
+        
+        setReadingGoal({
           ...readingGoal,
           target: newGoalTarget
-        }
-      };
-      
-      setLocalUser(updatedUser);
-      setUser(updatedUser);
-      setEditingGoal(false);
-    } catch (error) {
-      console.error("Error updating reading goal:", error);
-      setError("Failed to update reading goal");
-    }
-  };
+        });
+        
+        // Update user object with new goal
+        const updatedUser = {
+          ...localUser,
+          reading_goal: {
+            ...readingGoal,
+            target: newGoalTarget
+          }
+        };
+        
+        setLocalUser(updatedUser);
+        setUser(updatedUser);
+        setEditingGoal(false);
+      } catch (error) {
+        console.error("Error updating reading goal:", error);
+        setError("Failed to update reading goal");
+      }
+    };
 
   const fetchBookTitles = async (bookIds) => {
     if (!bookIds || bookIds.length === 0) return;

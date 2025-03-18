@@ -18,5 +18,7 @@ urlpatterns = [
     path('unauthorized/', unauthorized, name='unauthorized'),
     path('profile/reading-goal/', reading_goal_view, name='reading_goal'),
     path('profile/reading-goal/update/', update_reading_goal, name='update_reading_goal'),
+    path('profile/reading-stats/', reading_stats_view, name='reading_stats'),
+
 ]
 

@@ -5,9 +5,10 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login as django_login
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
+from django.db.models import Sum, Avg
 from .models import CustomUser
 from django.contrib.sessions.models import Session
-import random
+import random, requests
 from .models import UserPreferences, CustomUser, Bookshelf
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
@@ -463,6 +464,104 @@ def reading_goal_view(request):
             }, status=200)
         except json.JSONDecodeError:
             return JsonResponse({"error": "Invalid JSON"}, status=400)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+    
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+@csrf_exempt
+@login_required
+def reading_stats_view(request):
+    if request.method == "GET":
+        try:
+            user = request.user
+            
+            # Get books marked as 'read' from the user's bookshelf
+            books_read = Bookshelf.objects.filter(user=user, status='read')
+            
+            # Calculate total number of books read
+            total_books = books_read.count()
+            
+            # Initialize counters for pages and ratings
+            total_pages = 0
+            total_rating = 0
+            rated_books_count = 0
+            
+            # Use cache from session if available
+            if 'book_data_cache' not in request.session:
+                request.session['book_data_cache'] = {}
+            
+            # Books we need to fetch data for
+            books_to_fetch = []
+            
+            # First check cache
+            for book in books_read:
+                if book.book_id in request.session['book_data_cache']:
+                    cached_data = request.session['book_data_cache'][book.book_id]
+                    
+                    # Add page count if available
+                    if 'pageCount' in cached_data:
+                        total_pages += cached_data['pageCount']
+                    
+                    # Add rating if available
+                    if 'averageRating' in cached_data:
+                        total_rating += cached_data['averageRating']
+                        rated_books_count += 1
+                else:
+                    books_to_fetch.append(book)
+            
+            # Fetch data for books not in cache
+            if books_to_fetch:
+                api_key = getattr(settings, 'GOOGLE_BOOKS_API_KEY', '')
+                
+                for book in books_to_fetch:
+                    try:
+                        url = f"https://www.googleapis.com/books/v1/volumes/{book.book_id}"
+                        if api_key:
+                            url += f"?key={api_key}"
+                            
+                        response = requests.get(url)
+                        if response.status_code == 200:
+                            book_data = response.json()
+                            
+                            # Initialize cache entry
+                            cache_entry = {}
+                            
+                            # Extract and store page count
+                            if 'volumeInfo' in book_data:
+                                volume_info = book_data['volumeInfo']
+                                
+                                # Get page count
+                                if 'pageCount' in volume_info:
+                                    page_count = volume_info['pageCount']
+                                    cache_entry['pageCount'] = page_count
+                                    total_pages += page_count
+                                
+                                # Get average rating
+                                if 'averageRating' in volume_info:
+                                    avg_rating = volume_info['averageRating']
+                                    cache_entry['averageRating'] = avg_rating
+                                    total_rating += avg_rating
+                                    rated_books_count += 1
+                            
+                            # Save to cache if we got any useful data
+                            if cache_entry:
+                                request.session['book_data_cache'][book.book_id] = cache_entry
+                    except Exception as e:
+                        print(f"Error fetching data for book {book.book_id}: {str(e)}")
+                        continue
+                
+                # Save updated session
+                request.session.modified = True
+            
+            # Calculate average rating
+            average_rating = round(total_rating / rated_books_count, 1) if rated_books_count > 0 else 0
+            
+            return JsonResponse({
+                "total_books": total_books,
+                "total_pages": total_pages,
+                "average_rating": average_rating
+            }, status=200)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
     

@@ -35,6 +35,7 @@ class UserPreferences(models.Model):
 class Bookshelf(models.Model):
     STATUS_CHOICES = (
         ('to_read', 'To Read'),
+        ('reading', 'Currently Reading'),
         ('read', 'Read'),
     )
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='bookshelf')
@@ -44,9 +45,13 @@ class Bookshelf(models.Model):
     image = models.URLField(blank=True, null=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='to_read')
     added_date = models.DateTimeField(auto_now_add=True)
-
+    
+    # Add these fields to track pages and rating
+    page_count = models.IntegerField(null = True, blank = True)
+    user_rating = models.DecimalField(max_digits=3, decimal_places=1, default=0)
+    
     class Meta:
         unique_together = ('user', 'book_id')  # Prevent duplicate entries
-
+    
     def __str__(self):
         return f"{self.title} - {self.user.username}"
