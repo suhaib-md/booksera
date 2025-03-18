@@ -4,6 +4,8 @@ from .views import *
 urlpatterns = [
     path("api/recommendations/", get_recommendations, name="recommendations"),
     path("api/search/", search_books, name="search_books"),  
+    path('api/categories/', get_popular_categories, name='get_popular_categories'),
+    path('api/category/browse/', browse_category, name='browse_category'),
     path("api/personalized-recommendations/", get_personalized_recommendations, name="personalized_recommendations"),
     path('api/book/<str:book_id>/', get_book_details, name='get_book_details'),
     path('api/mood-recommendations/', get_mood_recommendations, name='mood_recommendations'),

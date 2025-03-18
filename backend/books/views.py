@@ -149,6 +149,86 @@ def search_books(request):
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 @csrf_exempt
+def browse_category(request):
+    """Get books for a specific category from Google Books API"""
+    if request.method == "GET":
+        category = request.GET.get("category", "").strip()
+        max_results = int(request.GET.get("max_results", 10))
+        
+        if not category:
+            return JsonResponse({"error": "Category is required"}, status=400)
+        
+        # Build the query for the category
+        query = f"subject:{category}"
+        
+        params = {
+            "q": query,
+            "key": settings.GOOGLE_BOOKS_API_KEY,
+            "maxResults": max_results,
+            "orderBy": "relevance",
+        }
+        
+        try:
+            response = requests.get(GOOGLE_BOOKS_API_URL, params=params)
+            response.raise_for_status()
+            data = response.json()
+            
+            books = []
+            total_items = data.get("totalItems", 0)
+            if "items" in data:
+                for item in data["items"]:
+                    volume_info = item.get("volumeInfo", {})
+                    image_links = volume_info.get("imageLinks", {})
+                    books.append({
+                        "id": item.get("id"),
+                        "title": volume_info.get("title", "Unknown Title"),
+                        "authors": ", ".join(volume_info.get("authors", ["Unknown Author"])),
+                        "image": image_links.get("thumbnail", ""),
+                        "publishedDate": volume_info.get("publishedDate", "N/A"),
+                        "description": volume_info.get("description", "No description available"),
+                    })
+            
+            return JsonResponse({
+                "books": books,
+                "totalItems": total_items,
+                "category": category,
+            }, safe=False)
+        except requests.RequestException as e:
+            return JsonResponse({"error": f"Failed to fetch category books: {str(e)}"}, status=500)
+    
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+@csrf_exempt
+def get_popular_categories(request):
+    """Get popular or featured book categories"""
+    if request.method == "GET":
+        # You could make this dynamic in the future based on trending categories
+        # or user preferences, but for now we'll use a static list
+        categories = [
+            {"id": "fiction", "name": "Fiction", "emoji": "📚", "color": "from-blue-500 to-indigo-600"},
+            {"id": "mystery", "name": "Mystery", "emoji": "🔍", "color": "from-purple-500 to-pink-600"},
+            {"id": "fantasy", "name": "Fantasy", "emoji": "🧙", "color": "from-teal-500 to-green-600"},
+            {"id": "romance", "name": "Romance", "emoji": "❤️", "color": "from-red-500 to-pink-600"},
+            {"id": "biography", "name": "Biography", "emoji": "👤", "color": "from-yellow-500 to-amber-600"},
+            {"id": "history", "name": "History", "emoji": "🏛️", "color": "from-gray-600 to-gray-800"},
+            {"id": "science", "name": "Science", "emoji": "🔬", "color": "from-cyan-500 to-blue-600"},
+            {"id": "self-help", "name": "Self-Help", "emoji": "🌱", "color": "from-green-500 to-teal-600"}
+        ]
+        
+        # Optional: randomly select a subset if requested
+        limit = request.GET.get("limit")
+        if limit and limit.isdigit():
+            import random
+            limit = min(int(limit), len(categories))
+            categories = random.sample(categories, limit)
+        
+        return JsonResponse({
+            "categories": categories
+        }, safe=False)
+        
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+@csrf_exempt
 def get_book_details(request, book_id):
     """Get detailed information about a specific book"""
     if request.method == "GET":
