@@ -27,8 +27,8 @@ urlpatterns = [
     path('', home),
     path('admin/', admin.site.urls),
     path('api/', include('users.urls')),
-    path('', include('books.urls')),
-    path('', include('communities.urls')),
+    path('api/', include('books.urls')),
+    path('api/', include('communities.urls')),
 ]
 
 if settings.DEBUG:

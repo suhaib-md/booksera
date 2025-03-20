@@ -42,7 +42,7 @@ class Bookshelf(models.Model):
     book_id = models.CharField(max_length=100)  # Google Books API book ID
     title = models.CharField(max_length=255)
     authors = models.CharField(max_length=255, blank=True, null=True)
-    image = models.URLField(blank=True, null=True)
+    image = models.URLField(max_length=1000,blank=True, null=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='to_read')
     added_date = models.DateTimeField(auto_now_add=True)
     

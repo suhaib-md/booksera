@@ -40,21 +40,37 @@ function BookDetail() {
 
   const addToBookshelf = async (status) => {
     try {
+      // Ensure all required fields are present and correctly formatted
+      if (!book || !book.id) {
+        console.error("Invalid book object:", book);
+        alert("Book information is incomplete. Cannot add to bookshelf.");
+        return;
+      }
+  
       const bookData = {
-        book_id: book.id,
+        book_id: book.id, // Make sure this is a string
         title: book.title || "Unknown Title",
         authors: Array.isArray(book.authors) ? book.authors.join(", ") : book.authors || "Unknown Author",
         image: book.image || book.thumbnail || "",
         status,
       };
+      
+      console.log("Book data being sent:", bookData);
+      
       await backendAPI.post(
-        '/bookshelf/update/',
+        "/bookshelf/add/",
         bookData,
         { withCredentials: true }
       );
+      
       alert(`Book added to ${status === "to_read" ? "To Read" : "Read"}!`);
     } catch (error) {
       console.error("Error adding to bookshelf:", error);
+      
+      if (error.response) {
+        console.error("Response data:", error.response.data);
+      }
+      
       alert("Failed to add book to bookshelf.");
     }
   };
