@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import AuthGuard from "../components/AuthGuard";
 import BookClubCard from "../components/BookClubCard";
 import BookClubCreateModal from "../components/BookClubCreateModal";
-import { backendAPI, externalAPI } from "../utils/api";
+import { backendAPI } from "../utils/api";
 
 function Communities() {
   const [bookClubs, setBookClubs] = useState([]);
@@ -35,13 +35,15 @@ function Communities() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchBookClubs();
-    fetchMyBookClubs();
-  }, []);
+    if (searchQuery || selectedCategory) {
+      fetchBookClubs();
+    }
+  }, [searchQuery, selectedCategory]);
 
   useEffect(() => {
     fetchBookClubs();
-  }, [searchQuery, selectedCategory]);
+    fetchMyBookClubs();
+  }, []);
 
   const fetchBookClubs = async () => {
     setLoading(true);
@@ -67,7 +69,7 @@ function Communities() {
       setBookClubs(response.data.book_clubs || []);
     } catch (error) {
       console.error("Error fetching book clubs:", error);
-      setError("Failed to load book clubs.");
+      setError("Failed to load book clubs: " + (error.response?.data?.error || "Unknown error"));
     } finally {
       setLoading(false);
     }
@@ -103,137 +105,275 @@ function Communities() {
       );
       fetchBookClubs(); // Refresh the list to update the "is_member" status
       fetchMyBookClubs(); // Update my clubs list
+      alert("Successfully joined book club!");
     } catch (error) {
       console.error("Error joining book club:", error);
       alert("Failed to join book club: " + (error.response?.data?.error || "Unknown error"));
     }
   };
 
+  // Wrapper to adapt club data to BookClubCard component
+  const renderClub = (club, isMember = false, role = null) => {
+    return (
+      <motion.div
+        key={club.id}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        whileHover={{ y: -5, transition: { duration: 0.2 } }}
+        className="h-full"
+      >
+        <BookClubCard
+          club={{
+            name: club.name,
+            description: club.description,
+            category: club.category,
+            image: club.image,
+            current_book: club.current_book,
+            current_book_image: club.current_book_image,
+            members_count: club.member_count || club.members_count || 0,
+            created_at: club.created_at
+          }}
+          isMember={isMember}
+          role={role}
+          onClick={() => navigate(`/communities/${club.id}`)}
+          onJoin={() => handleJoinClub(club.id)}
+        />
+      </motion.div>
+    );
+  };
+
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-gray-100">
-        <div className="p-6 text-center bg-gradient-to-r from-blue-500 to-purple-600 text-white">
-          <h2 className="text-3xl font-semibold mb-2">Book Communities</h2>
-          <p className="text-white opacity-90">Join clubs, discuss books, and connect with fellow readers</p>
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
+        {/* Header section with curved background */}
+        <div className="relative mb-32">
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 rounded-b-[40px] h-64"></div>
+          
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="relative z-10 text-center pt-20 pb-16"
+          >
+            <h1 className="text-3xl font-bold text-white">Book Communities</h1>
+            <p className="text-purple-100 mt-2">Join clubs, discuss books, and connect with fellow readers</p>
+          </motion.div>
         </div>
-
-        {/* Main Content */}
-        <div className="max-w-6xl mx-auto p-4">
+        
+        {/* Main content */}
+        <div className="max-w-6xl mx-auto -mt-40 relative z-10 px-4 pb-12">
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-lg shadow-md"
+            >
+              <p>{error}</p>
+            </motion.div>
+          )}
           
           {/* My Book Clubs Section */}
-          <section className="mb-8">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold">My Book Clubs</h3>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
-              >
-                Create Book Club
-              </button>
-            </div>
-            
-            {myClubsLoading ? (
-              <div className="flex justify-center py-4">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500"></div>
-              </div>
-            ) : myBookClubs.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {myBookClubs.map((club) => (
-                  <BookClubCard
-                    key={club.id}
-                    club={club}
-                    onClick={() => navigate(`/communities/${club.id}`)}
-                    isMember={true}
-                    role={club.role}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="bg-white p-6 rounded-lg shadow text-center">
-                <p className="text-gray-600">You haven't joined any book clubs yet.</p>
-                <button
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="bg-white rounded-2xl shadow-xl overflow-hidden mb-8"
+          >
+            <div className="p-8">
+              <div className="flex flex-wrap justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-slate-800 flex items-center">
+                  <span className="mr-2">👥</span> My Book Clubs
+                </h2>
+                
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => setShowCreateModal(true)}
-                  className="mt-2 bg-blue-100 text-blue-600 px-4 py-2 rounded hover:bg-blue-200 transition-colors"
+                  className="mt-2 sm:mt-0 px-5 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-full font-medium hover:shadow-lg transition-all"
                 >
-                  Create Your First Club
-                </button>
+                  Create Club
+                </motion.button>
               </div>
-            )}
-          </section>
+              
+              {myClubsLoading ? (
+                <div className="flex justify-center py-16">
+                  <div className="w-16 h-16 border-4 border-purple-400 border-t-purple-600 rounded-full animate-spin"></div>
+                </div>
+              ) : myBookClubs.length > 0 ? (
+                <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {myBookClubs.map((club) => renderClub(club, true, club.role))}
+                </div>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0.5, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-10 text-center shadow-inner"
+                >
+                  <div className="w-20 h-20 bg-purple-200 rounded-full flex items-center justify-center mx-auto mb-4 shadow-md">
+                    <span className="text-2xl">👥</span>
+                  </div>
+                  <h3 className="text-lg font-semibold text-slate-800 mb-2">You haven't joined any clubs yet</h3>
+                  <p className="text-slate-600 mb-6">Join existing book clubs or create your own to discuss books with others</p>
+                  <motion.button 
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowCreateModal(true)} 
+                    className="px-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-full font-medium hover:shadow-lg transition-all"
+                  >
+                    Create Your First Club
+                  </motion.button>
+                </motion.div>
+              )}
+            </div>
+          </motion.div>
           
           {/* Discover Book Clubs Section */}
-          <section>
-            <h3 className="text-xl font-bold mb-4">Discover Book Clubs</h3>
-            
-            {/* Search and Filter */}
-            <div className="bg-white p-4 rounded-lg shadow mb-4 flex flex-col sm:flex-row gap-4">
-              <div className="flex-grow">
-                <input
-                  type="text"
-                  placeholder="Search book clubs..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded"
-                />
-              </div>
-              <div className="w-full sm:w-64">
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded"
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="bg-white rounded-2xl shadow-xl overflow-hidden mb-8"
+          >
+            <div className="p-8">
+              <h2 className="text-2xl font-bold text-slate-800 flex items-center mb-6">
+                <span className="mr-2">🔍</span> Discover Book Clubs
+              </h2>
+              
+              {/* Search and Filter */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.3 }}
+                className="mb-8 bg-slate-50 p-4 rounded-xl shadow-inner"
+              >
+                <div className="flex flex-col md:flex-row gap-4">
+                  <div className="flex-grow">
+                    <input
+                      type="text"
+                      placeholder="Search book clubs..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
+                    />
+                  </div>
+                  <div className="w-full md:w-64">
+                    <select
+                      value={selectedCategory}
+                      onChange={(e) => setSelectedCategory(e.target.value)}
+                      className="w-full p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all appearance-none bg-white"
+                    >
+                      {categories.map((category) => (
+                        <option key={category.value} value={category.value}>
+                          {category.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </motion.div>
+              
+              {/* Book Clubs List */}
+              {loading ? (
+                <div className="flex justify-center py-16">
+                  <div className="w-16 h-16 border-4 border-blue-400 border-t-blue-600 rounded-full animate-spin"></div>
+                </div>
+              ) : bookClubs.length > 0 ? (
+                <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {bookClubs.map((club) => renderClub(club, club.is_member, club.role))}
+                </div>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0.5, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-10 text-center shadow-inner"
                 >
-                  {categories.map((category) => (
-                    <option key={category.value} value={category.value}>
-                      {category.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  <div className="w-20 h-20 bg-blue-200 rounded-full flex items-center justify-center mx-auto mb-4 shadow-md">
+                    <span className="text-2xl">📚</span>
+                  </div>
+                  <h3 className="text-lg font-semibold text-slate-800 mb-2">No book clubs found</h3>
+                  <p className="text-slate-600 mb-6">
+                    {searchQuery || selectedCategory 
+                      ? "Try adjusting your search criteria or clear filters to see more results" 
+                      : "Be the first to create a book club!"
+                    }
+                  </p>
+                  {searchQuery || selectedCategory ? (
+                    <motion.button 
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        setSearchQuery("");
+                        setSelectedCategory("");
+                      }} 
+                      className="px-6 py-3 bg-gradient-to-r from-blue-500 to-teal-500 text-white rounded-full font-medium hover:shadow-lg transition-all"
+                    >
+                      Clear Filters
+                    </motion.button>
+                  ) : (
+                    <motion.button 
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setShowCreateModal(true)} 
+                      className="px-6 py-3 bg-gradient-to-r from-blue-500 to-teal-500 text-white rounded-full font-medium hover:shadow-lg transition-all"
+                    >
+                      Create a Book Club
+                    </motion.button>
+                  )}
+                </motion.div>
+              )}
             </div>
+          </motion.div>
+          
+          {/* Quick Actions */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
+          >
+            <motion.div 
+              whileHover={{ y: -5, transition: { duration: 0.2 } }}
+              onClick={() => navigate("/bookshelf")}
+              className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-6 rounded-2xl shadow-lg cursor-pointer"
+            >
+              <div className="flex items-center">
+                <div className="text-4xl mr-4">📚</div>
+                <div>
+                  <h3 className="text-xl font-bold">My Bookshelf</h3>
+                  <p className="opacity-90">Your personal library</p>
+                </div>
+              </div>
+            </motion.div>
             
-            {/* Results */}
-            {loading ? (
-              <div className="flex justify-center py-8">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            <motion.div 
+              whileHover={{ y: -5, transition: { duration: 0.2 } }}
+              onClick={() => navigate("/search")}
+              className="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-6 rounded-2xl shadow-lg cursor-pointer"
+            >
+              <div className="flex items-center">
+                <div className="text-4xl mr-4">🔍</div>
+                <div>
+                  <h3 className="text-xl font-bold">Find Books</h3>
+                  <p className="opacity-90">Discover new titles to discuss</p>
+                </div>
               </div>
-            ) : error ? (
-              <div className="bg-red-100 text-red-600 p-4 rounded-lg">{error}</div>
-            ) : bookClubs.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {bookClubs.map((club) => (
-                  <BookClubCard
-                    key={club.id}
-                    club={club}
-                    onClick={() => navigate(`/communities/${club.id}`)}
-                    onJoin={() => handleJoinClub(club.id)}
-                    isMember={club.is_member}
-                  />
-                ))}
+            </motion.div>
+            
+            <motion.div 
+              whileHover={{ y: -5, transition: { duration: 0.2 } }}
+              onClick={() => setShowCreateModal(true)}
+              className="bg-gradient-to-r from-teal-500 to-green-500 text-white p-6 rounded-2xl shadow-lg cursor-pointer"
+            >
+              <div className="flex items-center">
+                <div className="text-4xl mr-4">✨</div>
+                <div>
+                  <h3 className="text-xl font-bold">Create Club</h3>
+                  <p className="opacity-90">Start your own community</p>
+                </div>
               </div>
-            ) : (
-              <div className="bg-white p-6 rounded-lg shadow text-center">
-                <p className="text-gray-600">No book clubs found.</p>
-                {searchQuery || selectedCategory ? (
-                  <button
-                    onClick={() => {
-                      setSearchQuery("");
-                      setSelectedCategory("");
-                    }}
-                    className="mt-2 bg-blue-100 text-blue-600 px-4 py-2 rounded hover:bg-blue-200 transition-colors"
-                  >
-                    Clear Filters
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setShowCreateModal(true)}
-                    className="mt-2 bg-blue-100 text-blue-600 px-4 py-2 rounded hover:bg-blue-200 transition-colors"
-                  >
-                    Create a Book Club
-                  </button>
-                )}
-              </div>
-            )}
-          </section>
+            </motion.div>
+          </motion.div>
         </div>
         
         {/* Create Book Club Modal */}

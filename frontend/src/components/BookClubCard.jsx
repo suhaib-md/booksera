@@ -1,5 +1,6 @@
 import React from "react";
 import { BookOpen, Users, Calendar } from "lucide-react";
+import { motion } from "framer-motion";
 
 function BookClubCard({ club, onClick, onJoin, isMember, role }) {
   const categoryStyles = {
@@ -35,34 +36,38 @@ function BookClubCard({ club, onClick, onJoin, isMember, role }) {
   };
 
   return (
-    <div
-      className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col h-full"
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      whileHover={{ y: -5, transition: { duration: 0.2 } }}
+      className="bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-xl transition-all flex flex-col h-full"
     >
       {/* Card Header with Image */}
       <div 
-        className="h-40 bg-gradient-to-r from-blue-400 to-purple-500 relative cursor-pointer"
+        className="h-40 relative cursor-pointer overflow-hidden"
         onClick={onClick}
       >
         {club.image ? (
           <img
             src={club.image}
             alt={club.name}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-r from-blue-600 to-purple-600">
             <BookOpen size={48} className="text-white" />
           </div>
         )}
-        <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 p-2">
+        <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 backdrop-blur-sm p-3">
           <h3 className="text-white font-semibold truncate">{club.name}</h3>
         </div>
       </div>
 
       {/* Card Content */}
-      <div className="p-4 flex-grow cursor-pointer" onClick={onClick}>
-        <div className="flex justify-between items-start mb-2">
-          <span className={`text-xs px-2 py-1 rounded-full ${getCategoryStyle(club.category)}`}>
+      <div className="p-5 flex-grow cursor-pointer" onClick={onClick}>
+        <div className="flex justify-between items-start mb-3">
+          <span className={`text-xs px-3 py-1 rounded-full ${getCategoryStyle(club.category)}`}>
             {club.category?.replace("_", " ")}
           </span>
           {role && (
@@ -72,31 +77,31 @@ function BookClubCard({ club, onClick, onJoin, isMember, role }) {
           )}
         </div>
 
-        <p className="text-gray-600 text-sm line-clamp-3 mb-3">{club.description}</p>
+        <p className="text-slate-600 text-sm line-clamp-3 mb-4">{club.description}</p>
 
         {/* Current Book */}
         {club.current_book && (
-          <div className="mb-3">
-            <p className="text-xs text-gray-500 mb-1">Currently reading:</p>
+          <div className="mb-4 bg-slate-50 p-3 rounded-xl">
+            <p className="text-xs text-slate-500 mb-2">Currently reading:</p>
             <div className="flex items-center">
               {club.current_book_image ? (
                 <img 
                   src={club.current_book_image} 
                   alt={club.current_book} 
-                  className="w-8 h-12 object-cover mr-2"
+                  className="w-10 h-14 object-cover mr-3 rounded-md shadow-sm"
                 />
               ) : (
-                <div className="w-8 h-12 bg-gray-200 flex items-center justify-center mr-2">
-                  <BookOpen size={14} className="text-gray-400" />
+                <div className="w-10 h-14 bg-gradient-to-b from-blue-100 to-blue-200 flex items-center justify-center mr-3 rounded-md shadow-sm">
+                  <BookOpen size={16} className="text-blue-500" />
                 </div>
               )}
-              <span className="text-sm font-medium line-clamp-1">{club.current_book}</span>
+              <span className="text-sm font-medium line-clamp-2">{club.current_book}</span>
             </div>
           </div>
         )}
 
         {/* Club Info */}
-        <div className="flex items-center text-xs text-gray-500 gap-3">
+        <div className="flex items-center text-xs text-slate-500 gap-4">
           <div className="flex items-center">
             <Users size={14} className="mr-1" />
             <span>{club.members_count || 0} members</span>
@@ -109,27 +114,31 @@ function BookClubCard({ club, onClick, onJoin, isMember, role }) {
       </div>
 
       {/* Card Footer */}
-      <div className="p-3 border-t border-gray-100">
+      <div className="p-4 border-t border-gray-100">
         {isMember ? (
-          <button
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={onClick}
-            className="w-full py-1.5 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors text-sm font-medium"
+            className="w-full py-2 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition-colors text-sm font-medium shadow-sm"
           >
             Visit Club
-          </button>
+          </motion.button>
         ) : (
-          <button
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={(e) => {
               e.stopPropagation();
               onJoin();
             }}
-            className="w-full py-1.5 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors text-sm font-medium"
+            className="w-full py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full hover:shadow-lg transition-all text-sm font-medium"
           >
             Join Club
-          </button>
+          </motion.button>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
