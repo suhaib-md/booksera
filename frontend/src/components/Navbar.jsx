@@ -1,7 +1,7 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { IoMdLogOut, IoMdSearch } from "react-icons/io";
-import { MdAccountCircle, MdHome, MdMenuBook, MdPeople } from "react-icons/md";
+import { MdAccountCircle, MdHome, MdMenuBook, MdPeople, MdMovie } from "react-icons/md";
 import { useAuth } from "../components/AuthContext";
 import { motion } from "framer-motion";
 
@@ -108,6 +108,17 @@ function Navbar() {
                 }`}
               >
                 <MdPeople className="mr-1" /> Communities
+              </Link>
+            </motion.div>
+
+            <motion.div whileHover={{ y: -2 }}>
+              <Link 
+                to="/media-recommendations" 
+                className={`flex items-center text-slate-600 hover:text-blue-600 transition-colors h-8 ${
+                  isActive("/media-recommendations") ? "text-blue-600 font-medium" : ""
+                }`}
+              >
+                <MdMovie className="mr-1" /> Book To Screen
               </Link>
             </motion.div>
             
@@ -238,6 +249,18 @@ function Navbar() {
               </div>
             </Link>
 
+            <Link
+              to="/media-recommendations"
+              className={`block px-3 py-2 rounded-lg text-base ${
+                isActive("/media-recommendations") ? "text-blue-600 bg-blue-50" : "text-slate-600 hover:text-blue-600 hover:bg-blue-50"
+              } transition-colors`}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <div className="flex items-center">
+                <MdMovie className="mr-2" /> Book To Screen
+              </div>
+            </Link>
+            
             {user && (
               <>
                 <Link

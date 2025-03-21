@@ -21,6 +21,7 @@ env = environ.Env()
 environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 GOOGLE_BOOKS_API_KEY = env("GOOGLE_BOOKS_API_KEY")
 GOOGLE_BOOKS_API_URL = 'https://www.googleapis.com/books/v1/volumes'
+TMDB_API_KEY = env("TMDB_API_KEY")
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.

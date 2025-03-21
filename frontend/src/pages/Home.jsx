@@ -162,6 +162,12 @@ function Home() {
 
   const addToBookshelf = async (book, status) => {
     try {
+      console.log("Book object:", book);
+  
+      // Extract page count and categories from the book object
+      const pageCount = book.volumeInfo?.pageCount || null;
+      const categories = book.volumeInfo?.categories?.join(", ") || "Not specified";
+      
       const bookData = {
         book_id: book.id,
         title: book.title || book.volumeInfo?.title || "Unknown Title",
@@ -171,13 +177,22 @@ function Home() {
           "Unknown Author",
         image: book.image || book.volumeInfo?.imageLinks?.thumbnail || "",
         status,
+        page_count: pageCount,
+        user_rating: 0,
+        categories: categories ? JSON.stringify([categories]) : JSON.stringify([])
       };
+      
+      console.log("Sending data:", bookData);
+  
       await backendAPI.post("/bookshelf/add/", bookData, {
         withCredentials: true,
       });
       alert(`Book added to ${status === "to_read" ? "To Read" : "Read"}!`);
     } catch (error) {
       console.error("Error adding to bookshelf:", error);
+      if (error.response) {
+        console.error("Error details:", error.response.data);
+      }
       alert("Failed to add book to bookshelf.");
     }
   };

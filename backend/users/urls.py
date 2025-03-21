@@ -19,6 +19,7 @@ urlpatterns = [
     path('profile/reading-goal/', reading_goal_view, name='reading_goal'),
     path('profile/reading-goal/update/', update_reading_goal, name='update_reading_goal'),
     path('profile/reading-stats/', reading_stats_view, name='reading_stats'),
-
+    path('media-recommendations/', get_media_recommendations, name='get_media_recommendations'),
+    path('media-recommendations/refresh/', refresh_recommendations, name='refresh_media_recommendations'),
 ]
 

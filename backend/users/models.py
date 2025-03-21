@@ -50,8 +50,34 @@ class Bookshelf(models.Model):
     page_count = models.IntegerField(null = True, blank = True)
     user_rating = models.DecimalField(max_digits=3, decimal_places=1, default=0)
     
+    # Add the missing categories field
+    categories = models.JSONField(default=list, help_text="List of categories")
+    
     class Meta:
         unique_together = ('user', 'book_id')  # Prevent duplicate entries
     
     def __str__(self):
         return f"{self.title} - {self.user.username}"
+    
+class MediaRecommendation(models.Model):
+    MEDIA_TYPE_CHOICES = (
+        ('movie', 'Movie'),
+        ('tv', 'TV Show'),
+    )
+    
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='media_recommendations')
+    book_id = models.CharField(max_length=100)  # Google Books API book ID
+    book_title = models.CharField(max_length=255)
+    media_id = models.IntegerField()  # TMDb ID
+    media_title = models.CharField(max_length=255)
+    media_type = models.CharField(max_length=10, choices=MEDIA_TYPE_CHOICES)
+    poster_path = models.CharField(max_length=255, blank=True, null=True)
+    overview = models.TextField(blank=True, null=True)
+    relevance_score = models.FloatField(default=0)  # How relevant the recommendation is
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ('user', 'book_id', 'media_id')  # Prevent duplicate recommendations
+    
+    def __str__(self):
+        return f"{self.book_title} → {self.media_title} ({self.media_type})"
