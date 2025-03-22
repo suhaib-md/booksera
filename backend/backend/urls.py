@@ -29,6 +29,8 @@ urlpatterns = [
     path('api/', include('users.urls')),
     path('api/', include('books.urls')),
     path('api/', include('communities.urls')),
+    path('api/', include('media_recommendations.urls')),
+
 ]
 
 if settings.DEBUG:

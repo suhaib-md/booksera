@@ -3,6 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import BookSummaryContainer from "../components/BookSummaryContainer";
 import { backendAPI } from "../utils/api";
+import BookMovieRecommendations from "../components/BookMovieRecommendations";
+
 
 function BookDetail() {
   const { bookId } = useParams();
@@ -274,6 +276,17 @@ function BookDetail() {
           <div className="p-8 border-t border-gray-200">
             <h3 className="text-lg font-medium text-gray-900 mb-4">AI Summary</h3>
             <BookSummaryContainer bookId={bookId} bookTitle={book.title} />
+          </div>
+
+          {/* Movie Recommendations Section */}
+          <div className="bg-white shadow-md rounded-lg p-6 mt-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+              <span className="mr-2">🎬</span> From Book to Screen
+            </h2>
+            
+            <BookMovieRecommendations 
+              bookId={bookId}  
+            />
           </div>
 
           <div className="p-8 bg-gray-50 border-t border-gray-200">

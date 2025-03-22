@@ -13,7 +13,7 @@ import BookDetail from "./pages/BookDetail";
 import MoodRecommendations from "./pages/MoodRecommendations";
 import Communities from "./pages/Communities";
 import BookClubDetail from "./pages/BookClubDetail";
-import MediaRecommendationsPage from './components/MediaRecommendations/MediaRecommendationsPage';
+import MovieRecommendationsPage from "./pages/MovieRecommendationsPage";
 
 
 function App() {
@@ -44,8 +44,8 @@ function AppContent() {
           <Route path="/mood" element={<MoodRecommendations />} />
           <Route path="/communities" element={<Communities />} />
           <Route path="/communities/:clubId" element={<BookClubDetail />} />
-          <Route path="/media-recommendations" element={<MediaRecommendationsPage />} />
-        </Routes>
+          <Route path="/movie-recommendations" element={<MovieRecommendationsPage />} />
+          </Routes>
       </ErrorBoundary>
     </>
   );

@@ -113,9 +113,9 @@ function Navbar() {
 
             <motion.div whileHover={{ y: -2 }}>
               <Link 
-                to="/media-recommendations" 
+                to="/movie-recommendations" 
                 className={`flex items-center text-slate-600 hover:text-blue-600 transition-colors h-8 ${
-                  isActive("/media-recommendations") ? "text-blue-600 font-medium" : ""
+                  isActive("/movie-recommendations") ? "text-blue-600 font-medium" : ""
                 }`}
               >
                 <MdMovie className="mr-1" /> Book To Screen
@@ -250,9 +250,9 @@ function Navbar() {
             </Link>
 
             <Link
-              to="/media-recommendations"
+              to="/movie-recommendations"
               className={`block px-3 py-2 rounded-lg text-base ${
-                isActive("/media-recommendations") ? "text-blue-600 bg-blue-50" : "text-slate-600 hover:text-blue-600 hover:bg-blue-50"
+                isActive("/movie-recommendations") ? "text-blue-600 bg-blue-50" : "text-slate-600 hover:text-blue-600 hover:bg-blue-50"
               } transition-colors`}
               onClick={() => setIsMobileMenuOpen(false)}
             >

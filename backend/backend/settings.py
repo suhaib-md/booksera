@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'books',
     'users',
     'communities',
+    'media_recommendations',
 ]
 
 MIDDLEWARE = [

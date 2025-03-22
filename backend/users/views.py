@@ -9,8 +9,7 @@ from django.db.models import Sum, Avg
 from .models import CustomUser
 from django.contrib.sessions.models import Session
 import random, requests
-from .models import UserPreferences, CustomUser, Bookshelf, MediaRecommendation
-from .recommendation_service import RecommendationService
+from .models import UserPreferences, CustomUser, Bookshelf
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.conf import settings
@@ -592,62 +591,3 @@ def reading_stats_view(request):
     
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
-@login_required
-def get_media_recommendations(request):
-    """Get media recommendations for the authenticated user"""
-    try:
-        # Get existing recommendations
-        recommendations = MediaRecommendation.objects.filter(user=request.user).order_by('-relevance_score')
-        
-        # If no recommendations exist, generate them
-        if not recommendations.exists():
-            recommendation_service = RecommendationService()
-            recommendation_service.generate_and_save_recommendations(request.user)
-            recommendations = MediaRecommendation.objects.filter(user=request.user).order_by('-relevance_score')
-        
-        # Format response
-        result = {
-            'recommendations': []
-        }
-        
-        # Group recommendations by book
-        books_map = {}
-        for rec in recommendations:
-            if rec.book_id not in books_map:
-                books_map[rec.book_id] = {
-                    'book_id': rec.book_id,
-                    'book_title': rec.book_title,
-                    'media': []
-                }
-            
-            books_map[rec.book_id]['media'].append({
-                'id': rec.media_id,
-                'title': rec.media_title,
-                'type': rec.media_type,
-                'poster_path': rec.poster_path,
-                'overview': rec.overview
-            })
-        
-        result['recommendations'] = list(books_map.values())
-        
-        return JsonResponse(result)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
-
-@csrf_exempt
-@login_required
-def refresh_recommendations(request):
-    """Regenerate media recommendations for the user"""
-    if request.method == "POST":
-        try:
-            recommendation_service = RecommendationService()
-            count = recommendation_service.generate_and_save_recommendations(request.user)
-            
-            return JsonResponse({
-                'message': f'Successfully generated {count} recommendations',
-                'success': True
-            })
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-    
-    return JsonResponse({'error': 'Method not allowed'}, status=405)
