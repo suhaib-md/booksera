@@ -204,6 +204,10 @@ def add_to_bookshelf(request):
             page_count = data.get("page_count")
             user_rating = data.get("user_rating", 0)
             
+            # Make sure image URL is complete (it should include http:// or https://)
+            if image and not (image.startswith('http://') or image.startswith('https://')):
+                image = f"https:{image}" if image.startswith('//') else f"https://{image}"
+            
             # Add categories with a default value
             if 'categories' in data:
                 # If categories is a string, convert to a list

@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 800">
+  <!-- Background -->
+  <rect width="1000" height="800" fill="#f8f9fa" />
+  
+  <!-- Center Circle (Core System) -->
+  <circle cx="500" cy="400" r="100" fill="#4361ee" stroke="#3349b8" stroke-width="3" />
+  <text x="500" y="400" font-family="Arial" font-size="22" fill="black" text-anchor="middle" dominant-baseline="middle">BooksEra Core</text>
+  <text x="500" y="420" font-family="Arial" font-size="22" fill="black" text-anchor="middle" dominant-baseline="middle">System</text>
+  <text x="500" y="445" font-family="Arial" font-size="14" fill="black" text-anchor="middle">AI-Powered Reading</text>
+  <text x="500" y="460" font-family="Arial" font-size="14" fill="black" text-anchor="middle">Ecosystem</text>
+  
+  <!-- Tentacle 1: User Authentication -->
+  <path d="M 570 340 Q 650 250 750 220" stroke="#3a86ff" stroke-width="8" fill="none" />
+  <circle cx="750" cy="220" r="65" fill="#3a86ff" stroke="#2a66cc" stroke-width="2" />
+  <text x="750" y="205" font-family="Arial" font-size="16" fill="black" text-anchor="middle">User Authentication</text>
+  <text x="750" y="225" font-family="Arial" font-size="12" fill="black" text-anchor="middle">& Profile Management</text>
+  <text x="750" y="245" font-family="Arial" font-size="11" fill="black" text-anchor="middle">PF: Secure user identity</text>
+  <text x="750" y="260" font-family="Arial" font-size="11" fill="black" text-anchor="middle">CF: Data privacy regulations</text>
+  
+  <!-- Tentacle 2: Book Search & Browsing -->
+  <path d="M 590 370 Q 700 360 800 330" stroke="#4cc9f0" stroke-width="8" fill="none" />
+  <circle cx="800" cy="330" r="65" fill="#4cc9f0" stroke="#2a99c0" stroke-width="2" />
+  <text x="800" y="315" font-family="Arial" font-size="16" fill="black" text-anchor="middle">Book Search</text>
+  <text x="800" y="335" font-family="Arial" font-size="12" fill="black" text-anchor="middle">& Browsing</text>
+  <text x="800" y="355" font-family="Arial" font-size="11" fill="black" text-anchor="middle">PF: Efficient book discovery</text>
+  <text x="800" y="370" font-family="Arial" font-size="11" fill="black" text-anchor="middle">CF: API rate limits</text>
+  
+  <!-- Tentacle 3: AI Personalized Recommendations -->
+  <path d="M 580 420 Q 700 450 800 450" stroke="#ff595e" stroke-width="8" fill="none" />
+  <circle cx="800" cy="450" r="75" fill="#ff595e" stroke="#cc3941" stroke-width="2" />
+  <text x="800" y="430" font-family="Arial" font-size="16" fill="black" text-anchor="middle">AI Personalized</text>
+  <text x="800" y="450" font-family="Arial" font-size="16" fill="black" text-anchor="middle">Recommendations</text>
+  <text x="800" y="470" font-family="Arial" font-size="12" fill="black" text-anchor="middle">(SVD + BERT Hybrid)</text>
+  <text x="800" y="490" font-family="Arial" font-size="11" fill="black" text-anchor="middle">PF: Suggest relevant books</text>
+  <text x="800" y="505" font-family="Arial" font-size="11" fill="black" text-anchor="middle">CF: Computational resources</text>
+  
+  <!-- Tentacle 4: Mood-Based Recommendations -->
+  <path d="M 550 470 Q 620 550 730 570" stroke="#f15bb5" stroke-width="8" fill="none" />
+  <circle cx="730" cy="570" r="75" fill="#f15bb5" stroke="#c13b95" stroke-width="2" />
+  <text x="730" y="550" font-family="Arial" font-size="16" fill="black" text-anchor="middle">Mood-Based</text>
+  <text x="730" y="570" font-family="Arial" font-size="16" fill="black" text-anchor="middle">Recommendations</text>
+  <text x="730" y="590" font-family="Arial" font-size="12" fill="black" text-anchor="middle">(BERT Sentiment Analysis)</text>
+  <text x="730" y="610" font-family="Arial" font-size="11" fill="black" text-anchor="middle">PF: Match books to emotions</text>
+  <text x="730" y="625" font-family="Arial" font-size="11" fill="black" text-anchor="middle">CF: Emotional classification limits</text>
+  
+  <!-- Tentacle 5: AI-Generated Summaries -->
+  <path d="M 480 490 Q 480 600 550 650" stroke="#fee440" stroke-width="8" fill="none" />
+  <circle cx="550" cy="650" r="75" fill="#fee440" stroke="#ccb432" stroke-width="2" />
+  <text x="550" y="630" font-family="Arial" font-size="16" fill="black" text-anchor="middle">AI-Generated</text>
+  <text x="550" y="650" font-family="Arial" font-size="16" fill="black" text-anchor="middle">Summaries</text>
+  <text x="550" y="670" font-family="Arial" font-size="12" fill="black" text-anchor="middle">(BART/T5 Models)</text>
+  <text x="550" y="690" font-family="Arial" font-size="11" fill="black" text-anchor="middle">PF: Create concise book overviews</text>
+  <text x="550" y="705" font-family="Arial" font-size="11" fill="black" text-anchor="middle">CF: Model size & token limits</text>
+  
+  <!-- Tentacle 6: Book-to-Movie Recommendations -->
+  <path d="M 420 480 Q 380 580 260 620" stroke="#06d6a0" stroke-width="8" fill="none" />
+  <circle cx="260" cy="620" r="75" fill="#06d6a0" stroke="#04a67c" stroke-width="2" />
+  <text x="260" y="600" font-family="Arial" font-size="16" fill="black" text-anchor="middle">Book-to-Movie</text>
+  <text x="260" y="620" font-family="Arial" font-size="16" fill="black" text-anchor="middle">Recommendations</text>
+  <text x="260" y="640" font-family="Arial" font-size="12" fill="black" text-anchor="middle">(Sentence-BERT)</text>
+  <text x="260" y="660" font-family="Arial" font-size="11" fill="black" text-anchor="middle">PF: Cross-media content mapping</text>
+  <text x="260" y="675" font-family="Arial" font-size="11" fill="black" text-anchor="middle">CF: API availability & matching accuracy</text>
+  
+  <!-- Tentacle 7: Bookshelf & Reading Progress -->
+  <path d="M 410 430 Q 280 490 200 450" stroke="#9b5de5" stroke-width="8" fill="none" />
+  <circle cx="200" cy="450" r="65" fill="#9b5de5" stroke="#7b3db5" stroke-width="2" />
+  <text x="200" y="435" font-family="Arial" font-size="16" fill="black" text-anchor="middle">Bookshelf &</text>
+  <text x="200" y="455" font-family="Arial" font-size="12" fill="black" text-anchor="middle">Reading Progress</text>
+  <text x="200" y="475" font-family="Arial" font-size="11" fill="black" text-anchor="middle">PF: Track reading activity</text>
+  <text x="200" y="490" font-family="Arial" font-size="11" fill="black" text-anchor="middle">CF: Storage limitations</text>
+  
+  <!-- Tentacle 8: Community & Social Features -->
+  <path d="M 430 340 Q 320 270 200 300" stroke="#fb8500" stroke-width="8" fill="none" />
+  <circle cx="200" cy="300" r="65" fill="#fb8500" stroke="#cb6500" stroke-width="2" />
+  <text x="200" y="285" font-family="Arial" font-size="16" fill="black" text-anchor="middle">Community &</text>
+  <text x="200" y="305" font-family="Arial" font-size="12" fill="black" text-anchor="middle">Social Features</text>
+  <text x="200" y="325" font-family="Arial" font-size="11" fill="black" text-anchor="middle">PF: Foster reader engagement</text>
+  <text x="200" y="340" font-family="Arial" font-size="11" fill="black" text-anchor="middle">CF: Moderation requirements</text>
+  
+  <!-- Title -->
+  <text x="500" y="80" font-family="Arial" font-size="24" font-weight="bold" fill="#333" text-anchor="middle">BooksEra Octopus Diagram</text>
+  <text x="500" y="110" font-family="Arial" font-size="16" fill="#555" text-anchor="middle">Functional Analysis with Principle Functions (PF) & Constraint Functions (CF)</text>
+  
+  <!-- Legend -->
+  <rect x="100" y="150" width="250" height="65" rx="5" fill="#ffffff" stroke="#cccccc" stroke-width="1" />
+  <text x="115" y="170" font-family="Arial" font-size="12" font-weight="bold" fill="#333">Legend:</text>
+  <text x="115" y="190" font-family="Arial" font-size="12" fill="#333">PF: Principle Function - Primary purpose</text>
+  <text x="115" y="210" font-family="Arial" font-size="12" fill="#333">CF: Constraint Function - Limiting factors</text>
+</svg>

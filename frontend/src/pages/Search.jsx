@@ -126,26 +126,41 @@ function Search() {
     document.getElementById("search-results").scrollIntoView({ behavior: "smooth" });
   };
 
+  // Updated addToBookshelf function for Search.jsx
   const addToBookshelf = async (e, book, status) => {
     e.stopPropagation(); // Prevent navigation when clicking buttons
     try {
+      // Check if this is a book from search results (Google Books API)
+      const isSearchResult = book.volumeInfo !== undefined;
+      
       const bookData = {
         book_id: book.id,
-        title: book.title || "Unknown Title",
-        authors: book.authors || "Unknown Author",
-        image: book.image || "",
+        title: isSearchResult ? book.volumeInfo?.title : book.title || "Unknown Title",
+        authors: isSearchResult 
+          ? (book.volumeInfo?.authors?.join(", ") || "Unknown Author") 
+          : (book.authors || "Unknown Author"),
+        image: isSearchResult 
+          ? (book.volumeInfo?.imageLinks?.thumbnail || "") 
+          : (book.image || ""),
         status,
       };
+      
+      console.log("Adding book to bookshelf:", bookData);
+      
       await backendAPI.post(
         "/bookshelf/add/",
         bookData,
         { withCredentials: true }
       );
       
-      // Using a more modern toast notification would be better here
       alert(`Book added to ${status === "to_read" ? "To Read" : "Read"}!`);
     } catch (error) {
       console.error("Error adding to bookshelf:", error);
+      
+      if (error.response) {
+        console.error("Error response:", error.response.data);
+      }
+      
       alert("Failed to add book to bookshelf.");
     }
   };
@@ -625,16 +640,16 @@ function Search() {
               </div>
             </motion.div>
             
-            <motion.div 
+            <motion.div
               whileHover={{ y: -5, transition: { duration: 0.2 } }}
-              onClick={() => navigate("/recommendations")}
-              className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white p-6 rounded-2xl shadow-lg cursor-pointer"
+              onClick={() => navigate("/mood")}
+              className="bg-gradient-to-r from-blue-500 to-teal-500 text-white p-6 rounded-2xl shadow-lg cursor-pointer"
             >
               <div className="flex items-center">
-                <div className="text-4xl mr-4">🌟</div>
+                <div className="text-4xl mr-4">😊</div>
                 <div>
-                  <h3 className="text-xl font-bold">Recommendations</h3>
-                  <p className="opacity-90">Books you might like</p>
+                  <h3 className="text-xl font-bold">Mood Reader</h3>
+                  <p className="opacity-90">Find books for your mood</p>
                 </div>
               </div>
             </motion.div>

@@ -432,19 +432,19 @@ function Bookshelf() {
                   </div>
                 </motion.div>
                 
-                <motion.div 
-                  whileHover={{ y: -5, transition: { duration: 0.2 } }}
-                  onClick={() => navigate("/recommendations")}
-                  className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white p-6 rounded-2xl shadow-lg cursor-pointer"
-                >
-                  <div className="flex items-center">
-                    <div className="text-4xl mr-4">🌟</div>
-                    <div>
-                      <h3 className="text-xl font-bold">Recommendations</h3>
-                      <p className="opacity-90">Books you might like</p>
-                    </div>
-                  </div>
-                </motion.div>
+                <motion.div
+              whileHover={{ y: -5, transition: { duration: 0.2 } }}
+              onClick={() => navigate("/mood")}
+              className="bg-gradient-to-r from-blue-500 to-teal-500 text-white p-6 rounded-2xl shadow-lg cursor-pointer"
+            >
+              <div className="flex items-center">
+                <div className="text-4xl mr-4">😊</div>
+                <div>
+                  <h3 className="text-xl font-bold">Mood Reader</h3>
+                  <p className="opacity-90">Find books for your mood</p>
+                </div>
+              </div>
+            </motion.div>
               </motion.div>
             </>
           )}
