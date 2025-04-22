@@ -1346,7 +1346,7 @@ def get_model(model_name="bart", max_retries=5):
         except Exception as e:
             if attempt < max_retries - 1:
                 # Exponential backoff with jitter
-                wait_time = (2 ** attempt) + random()
+                wait_time = (2 ** attempt) + random.random()
                 logger.warning(f"Attempt {attempt+1} failed to load model: {str(e)}. Retrying in {wait_time:.2f} seconds...")
                 time.sleep(wait_time)
             else:
