@@ -14,6 +14,9 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.conf import settings
 from datetime import datetime
+from django.core.cache import cache
+from django.utils import timezone
+from datetime import timedelta
 
 @csrf_exempt
 def check_auth_status(request):
@@ -35,8 +38,27 @@ def signup(request):
             username = data.get("username")
             password = data.get("password")
 
+            # Validate password requirements
+            if len(password) < 8:
+                return JsonResponse({"error": "Password must be at least 8 characters long"}, status=400)
+            
+            # Check for password complexity
+            if not (any(c.isdigit() for c in password) and 
+                    any(c.isupper() for c in password) and 
+                    any(c.islower() for c in password) and
+                    any(c in "!@#$%^&*()_+-=[]{}|;:,.<>?/" for c in password)):
+                return JsonResponse({"error": "Password must contain at least one digit, one uppercase letter, one lowercase letter, and one special character"}, status=400)
+
             if not email or not password or not username:
                 return JsonResponse({"error": "All fields are required"}, status=400)
+
+            # Validate username length
+            if len(username) < 4 or len(username) > 30:
+                return JsonResponse({"error": "Username must be between 4 and 30 characters"}, status=400)
+                
+            # Check for unique username
+            if CustomUser.objects.filter(username=username).exists():
+                return JsonResponse({"error": "Username already taken"}, status=400)
 
             if CustomUser.objects.filter(email=email).exists():
                 return JsonResponse({"error": "User already exists"}, status=400)
@@ -63,7 +85,19 @@ def login_view(request):
             data = json.loads(request.body)
             identifier = data.get("identifier")
             password = data.get("password")
+            
+            # Rate limiting for login attempts
+            ip_address = request.META.get('REMOTE_ADDR')
+            login_attempts_key = f"login_attempts:{ip_address}"
+            login_attempts = cache.get(login_attempts_key, 0)
+            
+            # If too many attempts, block temporarily
+            if login_attempts >= 5:  # 5 attempts maximum
+                return JsonResponse({"error": "Too many login attempts. Please try again later."}, status=429)
+            
+            # Rest of your login logic
             if not identifier or not password:
+                cache.set(login_attempts_key, login_attempts + 1, 300)  # 5 minutes timeout
                 return JsonResponse({"error": "Username/Email and password are required"}, status=400)
 
             user = None
@@ -72,16 +106,23 @@ def login_view(request):
                     user_obj = CustomUser.objects.get(email=identifier)
                     user = authenticate(username=user_obj.username, password=password)
                 except CustomUser.DoesNotExist:
+                    cache.set(login_attempts_key, login_attempts + 1, 300)
                     return JsonResponse({"error": "Invalid credentials"}, status=400)
             else:
                 user = authenticate(username=identifier, password=password)
 
             if user:
-                django_login(request, user)  # This creates and saves the session automatically
+                # Reset login attempts counter on successful login
+                cache.delete(login_attempts_key)
+                
+                django_login(request, user)
                 request.session.set_expiry(86400)  # Session valid for 1 day
-                # Let Django's middleware set the session cookie automatically.
-                return JsonResponse({"message": "Login successful"}, status=200)
+                
+                # Set HTTP-only cookies for session
+                response = JsonResponse({"message": "Login successful"}, status=200)
+                return response
             else:
+                cache.set(login_attempts_key, login_attempts + 1, 300)
                 return JsonResponse({"error": "Invalid credentials"}, status=400)
         except json.JSONDecodeError:
             return JsonResponse({"error": "Invalid JSON format"}, status=400)
