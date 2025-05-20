@@ -165,6 +165,41 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
+# Rate limiting settings
+RATE_LIMIT_SETTINGS = {
+    # Default rate limits
+    'DEFAULT': {
+        'DAILY_LIMIT': 50,  # 50 requests per day per user/IP
+    },
+    
+    # User role-based rate limits
+    'USER_TYPES': {
+        'anonymous': 20,     # Anonymous users get 20 requests per day
+        'standard': 50,      # Standard users get 50 requests per day
+        'premium': 200,      # Premium users get 200 requests per day
+        'admin': 1000,       # Admins get 1000 requests per day
+    },
+    
+    # API endpoint specific limits (can override the defaults)
+    'ENDPOINTS': {
+        'search_books': {
+            'anonymous': 10,
+            'standard': 30,
+            'premium': 100,
+        },
+        'browse_category': {
+            'anonymous': 5,
+            'standard': 20,
+            'premium': 100,
+        },
+    },
+    
+    # Cache settings for rate limiting
+    'CACHE_PREFIX': 'rate_limit_',
+    'CACHE_TTL': 86400,  # 24 hours in seconds (daily reset)
+}
+
+
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 

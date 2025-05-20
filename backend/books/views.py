@@ -10,6 +10,7 @@ from transformers import BartForConditionalGeneration, BartTokenizer, T5ForCondi
 import logging
 import os
 import time
+from datetime import datetime
 from django.core.cache import cache
 import numpy as np
 from numpy import dot
@@ -18,12 +19,76 @@ import torch
 from collections import defaultdict
 from sklearn.metrics.pairwise import cosine_similarity
 import json
-from functools import lru_cache
+from functools import wraps
 from sentence_transformers import SentenceTransformer
+from .rate_limiting import rate_limit_decorator  
+
 
 logger = logging.getLogger(__name__)
 
 GOOGLE_BOOKS_API_URL = "https://www.googleapis.com/books/v1/volumes"
+
+DAILY_LIMIT = 50  # Adjust this number based on your Google Books API free tier limit
+
+def get_rate_limit_info(request):
+    """
+    Helper function to get rate limit information for a user.
+    Returns a tuple of (is_limited, limit, remaining, reset_time)
+    """
+    # Identify the user - either by user ID if authenticated or by IP address
+    if request.user.is_authenticated:
+        user_identifier = f"rate_limit_user_{request.user.id}"
+    else:
+        user_identifier = f"rate_limit_ip_{request.META.get('REMOTE_ADDR', '')}"
+    
+    # Get the current day as a string (for daily reset)
+    current_day = datetime.now().strftime("%Y-%m-%d")
+    
+    # Create a unique cache key that includes the day (for daily reset)
+    cache_key = f"{user_identifier}_{current_day}"
+    
+    # Get current usage count from cache
+    usage_count = cache.get(cache_key, 0)
+    
+    # Calculate when the rate limit resets (end of the day)
+    now = datetime.now()
+    tomorrow = datetime(now.year, now.month, now.day, 0, 0, 0).timestamp() + 86400
+    seconds_until_reset = int(tomorrow - time.time())
+    reset_time = int(time.time() + seconds_until_reset)
+    
+    # Default limit (should match your decorator's default)
+    limit = 100
+    
+    # Check if the user has exceeded their limit
+    is_limited = usage_count >= limit
+    remaining = max(0, limit - usage_count)
+    
+    return (is_limited, limit, remaining, reset_time)
+
+def rate_limit_status(request):
+    """
+    Returns current rate limit status for the requesting user.
+    This endpoint always returns a 200 OK status (even when rate limited)
+    so the frontend can display status.
+    """
+    is_limited, limit, remaining, reset_time = get_rate_limit_info(request)
+    
+    # Create response with rate limit headers
+    response = JsonResponse({
+        "status": "limited" if is_limited else "ok",
+        "limit": limit,
+        "remaining": remaining,
+        "reset": reset_time
+    })
+    
+    # Always add rate limit headers
+    response['X-RateLimit-Limit'] = str(limit)
+    response['X-RateLimit-Remaining'] = str(remaining)
+    response['X-RateLimit-Reset'] = str(reset_time)
+    
+    # Even if rate limited, return 200 OK for this status endpoint
+    # so the frontend can display the status
+    return response
 
 # Use a more powerful model for better embeddings
 tokenizer = AutoTokenizer.from_pretrained("sentence-transformers/all-MiniLM-L6-v2")
@@ -60,6 +125,7 @@ def get_embedding(text, max_length=512):
     embedding_cache[cache_key] = result
     return result
 
+@rate_limit_decorator(max_requests=DAILY_LIMIT)  # Apply rate limiting
 def get_recommendations(request):
     """Legacy function - maintained for backward compatibility"""
     email = request.GET.get("email", None)
@@ -93,6 +159,7 @@ def get_recommendations(request):
     return JsonResponse({"books": recommended_books}, safe=False)
 
 @csrf_exempt
+@rate_limit_decorator(max_requests=DAILY_LIMIT)  # Apply rate limiting
 def search_books(request):
     """Search books in Google Books API"""
     if request.method == "GET":
@@ -149,6 +216,7 @@ def search_books(request):
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 @csrf_exempt
+@rate_limit_decorator(max_requests=DAILY_LIMIT)  # Apply rate limiting
 def browse_category(request):
     """Get books for a specific category from Google Books API"""
     if request.method == "GET":
@@ -199,6 +267,7 @@ def browse_category(request):
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 @csrf_exempt
+@rate_limit_decorator(max_requests=DAILY_LIMIT)  # Apply rate limiting
 def get_popular_categories(request):
     """Get popular or featured book categories"""
     if request.method == "GET":
@@ -229,6 +298,7 @@ def get_popular_categories(request):
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 @csrf_exempt
+@rate_limit_decorator(max_requests=DAILY_LIMIT)  # Apply rate limiting
 def get_book_details(request, book_id):
     """Get detailed information about a specific book"""
     if request.method == "GET":
@@ -306,6 +376,7 @@ def get_book_details(request, book_id):
 
 @login_required
 @csrf_exempt
+@rate_limit_decorator(max_requests=DAILY_LIMIT)  # Apply rate limiting
 def get_personalized_recommendations(request):
     """Enhanced recommendation system with multi-strategy approach"""
     if request.method == "GET":
@@ -905,6 +976,7 @@ def analyze_book_emotional_tone(volume_info):
 
 @csrf_exempt
 @login_required
+@rate_limit_decorator(max_requests=DAILY_LIMIT)  # Apply rate limiting
 def get_mood_recommendations(request):
     """Enhanced recommendation system based on user's mood with advanced AI matching"""
     if request.method != "GET":
@@ -1408,6 +1480,7 @@ def summarize_text(text, model_name="bart", max_length=150, min_length=40):
 
 @csrf_exempt
 @login_required
+@rate_limit_decorator(max_requests=DAILY_LIMIT)  # Apply rate limiting
 def get_book_summary(request, book_id):
     """Generate or retrieve AI summary for a book"""
     if request.method != "GET":
@@ -1477,6 +1550,7 @@ def get_book_summary(request, book_id):
 # Advanced summarization with customizable parameters
 @csrf_exempt
 @login_required
+@rate_limit_decorator(max_requests=DAILY_LIMIT)  # Apply rate limiting
 def get_advanced_book_summary(request):
     """Generate customized AI summary for a book or provided text"""
     if request.method == "POST":

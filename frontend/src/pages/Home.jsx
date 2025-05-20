@@ -523,6 +523,7 @@ function Home() {
                       </div>
                     </div>
                   </div>
+                  
                 </div>
 
                 {/* Mood Reader Promo */}
@@ -551,6 +552,7 @@ function Home() {
               </div>
             </div>
           </motion.div>
+
 
           {/* Recommendations Section */}
           <motion.div

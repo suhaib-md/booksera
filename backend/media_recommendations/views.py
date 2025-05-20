@@ -6,6 +6,7 @@ from users.models import CustomUser, Bookshelf
 from .models import MovieRecommendation
 from .tmdb_client import TMDBClient
 from .recommendation_engine import find_movies_for_book
+from .rate_limiting import rate_limit_decorator
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -13,9 +14,11 @@ logger = logging.getLogger(__name__)
 # Initialize TMDB client
 tmdb_client = TMDBClient()
 
+DAILY_LIMIT = 50
 
 @csrf_exempt
 @login_required
+@rate_limit_decorator(max_requests=DAILY_LIMIT)  # Apply rate limiting
 def get_movie_recommendations_for_book(request, book_id):
     """Get movie recommendations for a specific book"""
     if request.method != "GET":
@@ -108,6 +111,7 @@ def get_movie_recommendations_for_book(request, book_id):
 
 @csrf_exempt
 @login_required
+@rate_limit_decorator(max_requests=DAILY_LIMIT)  # Apply rate limiting
 def get_all_movie_recommendations(request):
     """Get all movie recommendations for the user's bookshelf"""
     if request.method != "GET":
@@ -243,6 +247,7 @@ def get_all_movie_recommendations(request):
 
 @csrf_exempt
 @login_required
+@rate_limit_decorator(max_requests=DAILY_LIMIT)  # Apply rate limiting
 def get_movie_details(request, movie_id):
     """Get detailed information about a specific movie"""
     if request.method != "GET":
@@ -275,6 +280,7 @@ def get_movie_details(request, movie_id):
 
 @csrf_exempt
 @login_required
+@rate_limit_decorator(max_requests=DAILY_LIMIT)  # Apply rate limiting
 def refresh_movie_recommendations(request):
     """Refresh movie recommendations for a specific book"""
     if request.method != "POST":

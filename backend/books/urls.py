@@ -11,4 +11,6 @@ urlpatterns = [
     path('mood-recommendations/', get_mood_recommendations, name='mood_recommendations'),
     path('books/<str:book_id>/summary/', get_book_summary, name='book_summary'),
     path('books/advanced-summary/', get_advanced_book_summary, name='advanced_book_summary'),
+    path('rate-limit-status/', rate_limit_status, name='rate_limit_status'),
+
 ]
