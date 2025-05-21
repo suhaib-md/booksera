@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 import environ
 import os
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -39,10 +40,12 @@ LOGIN_REDIRECT_URL = '/api/user/'
 SECRET_KEY = 'django-insecure-f&hk6tfumkii_p1bpp)f#35r#o&!b+6&&@myqb!umb!2799yco'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(' ') 
+if not DEBUG:
+    # Add your Vercel domain here later
+    ALLOWED_HOSTS.append('your-vercel-frontend.vercel.app') 
 
 # Application definition
 
@@ -62,9 +65,13 @@ INSTALLED_APPS = [
     'media_recommendations',
 ]
 
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles') # For collectstatic
+
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware', # Add this line
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -73,11 +80,44 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS = True
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",  # ✅ Ensure React frontend can make requests
+    # Replace 'https://your-vercel-frontend.vercel.app' with your actual Vercel frontend URL later
+    os.environ.get('FRONTEND_URL', 'http://localhost:3000'), 
+]
+
+SECRET_KEY = os.environ.get('SECRET_KEY', '5(tp99z9-e6m!0wzkav4d=a9+i=vsep$-ywo+k(uc)%fe0u6w(')
+
+# Or, for development, you can allow all origins (remove in production)
+# CORS_ALLOW_ALL_ORIGINS = True 
+
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
 ]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -122,15 +162,19 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+#DATABASES = {
+ #   'default': {
+  #      'ENGINE': 'django.db.backends.postgresql',
+   #     'NAME': 'booksera',  
+    #    'USER': 'postgres',
+     #   'PASSWORD': 'root',
+      #  'HOST': 'localhost',
+       # 'PORT': '5432',
+    #}
+#}
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'booksera',  
-        'USER': 'postgres',
-        'PASSWORD': 'root',
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
+    'default': dj_database_url.parse(os.environ.get('DATABASE_URL', 'sqlite:///db.sqlite3'))
 }
 
 AUTH_USER_MODEL = "users.CustomUser"
