@@ -18,34 +18,50 @@ import dj_database_url
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-env = environ.Env()
+# Initialize django-environ
+env = environ.Env(
+    # set casting and default values for environment variables
+    DEBUG=(bool, False),
+    ALLOWED_HOSTS=(list, []),
+    FRONTEND_URL=(str, 'http://localhost:3000'), # Default for local dev
+    GOOGLE_BOOKS_API_KEY=(str, ''), # Provide a default empty string
+    TMDB_API_KEY=(str, ''), # Provide a default empty string
+)
+
+# Read .env file in the root directory for local development
+# This line will be ignored by Render's environment variable system
 environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
+
+# API Keys (read from environment variables)
+# IMPORTANT: You MUST set these environment variables in your Render dashboard
 GOOGLE_BOOKS_API_KEY = env("GOOGLE_BOOKS_API_KEY")
-GOOGLE_BOOKS_API_URL = 'https://www.googleapis.com/books/v1/volumes'
 TMDB_API_KEY = env("TMDB_API_KEY")
 
+# External API URLs (constants)
+GOOGLE_BOOKS_API_URL = 'https://www.googleapis.com/books/v1/volumes'
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
-
+# Media files settings
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
+# Authentication URLs
 LOGIN_URL = '/api/login/'
 LOGIN_REDIRECT_URL = '/api/user/'
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-f&hk6tfumkii_p1bpp)f#35r#o&!b+6&&@myqb!umb!2799yco'
+# This reads from the SECRET_KEY environment variable.
+# The second argument is a fallback for local development if the env var isn't set.
+SECRET_KEY = env('SECRET_KEY', default='5(tp99z9-e6m!0wzkav4d=a9+i=vsep$-ywo+k(uc)%fe0u6w(') # Replace with a strong default for local dev
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
+# Reads DEBUG from environment variable, defaults to False
+DEBUG = env('DEBUG')
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(' ') 
-if not DEBUG:
-    # Add your Vercel domain here later
-    ALLOWED_HOSTS.append('your-vercel-frontend.vercel.app') 
+# Allowed hosts for the Django application
+# Reads from ALLOWED_HOSTS environment variable (comma-separated)
+# Example for Render: your-django-backend.onrender.com,your-vercel-frontend.vercel.app
+ALLOWED_HOSTS = env('ALLOWED_HOSTS')
 
 # Application definition
 
@@ -65,13 +81,21 @@ INSTALLED_APPS = [
     'media_recommendations',
 ]
 
+# Static files configuration for WhiteNoise
 STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles') # For collectstatic
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
+# Middleware order is crucial for security and functionality
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware', # Add this line
+    'corsheaders.middleware.CorsMiddleware', # Must be very high, before CommonMiddleware
+    'whitenoise.middleware.WhiteNoiseMiddleware', # After SecurityMiddleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -80,24 +104,15 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-STORAGES = {
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-    },
-}
+# CORS Configuration
+CORS_ALLOW_CREDENTIALS = True # Allow cookies/authentication headers to be sent cross-origin
 
-CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = True
+# Explicitly list allowed origins for security.
+# Reads from FRONTEND_URL environment variable (comma-separated if multiple).
+# IMPORTANT: Set FRONTEND_URL in Render to your Vercel frontend URL (e.g., https://your-vercel-frontend.vercel.app)
+CORS_ALLOWED_ORIGINS = [env('FRONTEND_URL')]
 
-CORS_ALLOWED_ORIGINS = [
-    # Replace 'https://your-vercel-frontend.vercel.app' with your actual Vercel frontend URL later
-    os.environ.get('FRONTEND_URL', 'http://localhost:3000'), 
-]
-
-SECRET_KEY = os.environ.get('SECRET_KEY', '5(tp99z9-e6m!0wzkav4d=a9+i=vsep$-ywo+k(uc)%fe0u6w(')
-
-# Or, for development, you can allow all origins (remove in production)
-# CORS_ALLOW_ALL_ORIGINS = True 
+# Removed CORS_ALLOW_ALL_ORIGINS = True as it overrides CORS_ALLOWED_ORIGINS and is less secure for production.
 
 CORS_ALLOW_METHODS = [
     'DELETE',
@@ -120,9 +135,11 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
 ]
 
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:5173",  # ✅ Allow React frontend to send CSRF tokens
-]
+# CSRF Configuration
+# IMPORTANT: Set CSRF_TRUSTED_ORIGINS in Render to include your Vercel frontend URL
+# Example: CSRF_TRUSTED_ORIGINS=https://your-vercel-frontend.vercel.app
+CSRF_TRUSTED_ORIGINS = env('CSRF_TRUSTED_ORIGINS', default='http://localhost:5173').split(',')
+
 
 # JWT Authentication settings
 REST_FRAMEWORK = {
@@ -135,8 +152,6 @@ AUTHENTICATION_BACKENDS = [
     'users.backends.CustomAuthBackend',  # ✅ Custom authentication (allows username & email)
     'django.contrib.auth.backends.ModelBackend',  # ✅ Default authentication
 ]
-
-
 
 ROOT_URLCONF = 'backend.urls'
 
@@ -177,18 +192,24 @@ DATABASES = {
     'default': dj_database_url.parse(os.environ.get('DATABASE_URL', 'sqlite:///db.sqlite3'))
 }
 
+# Custom User Model
 AUTH_USER_MODEL = "users.CustomUser"
 
-SESSION_ENGINE = "django.contrib.sessions.backends.db"  # Store sessions in PostgreSQL
+# Session and CSRF Cookie Settings
+SESSION_ENGINE = "django.contrib.sessions.backends.db" # Store sessions in PostgreSQL
 SESSION_COOKIE_NAME = "sessionid"
-SESSION_COOKIE_SECURE = False 
-SESSION_COOKIE_HTTPONLY = False 
-SESSION_COOKIE_SAMESITE = "Lax"  # Change from "None" to "Lax" for simplicity in developmentSESSION_COOKIE_AGE = 86400 
+SESSION_COOKIE_SECURE = not DEBUG # True in production (HTTPS), False in local dev (HTTP)
+SESSION_COOKIE_HTTPONLY = True # Prevent client-side JavaScript access
+SESSION_COOKIE_SAMESITE = "Lax" # 'Lax' is generally good for cross-site requests
+SESSION_COOKIE_AGE = 86400 # 24 hours
 SESSION_SAVE_EVERY_REQUEST = True
-SESSION_COOKIE_DOMAIN = "localhost"
-CSRF_COOKIE_DOMAIN = "localhost"
-CSRF_COOKIE_SAMESITE = "Lax"    # Add this to match
-CSRF_COOKIE_SECURE = False      # Add this for development
+# For cross-domain cookies with credentials, it's often best to let the browser handle the domain
+# by NOT setting SESSION_COOKIE_DOMAIN and CSRF_COOKIE_DOMAIN explicitly,
+# or setting them to None, unless you have a specific subdomain setup.
+SESSION_COOKIE_DOMAIN = None # Set to None for production or your actual domain if needed
+CSRF_COOKIE_DOMAIN = None # Set to None for production or your actual domain if needed
+CSRF_COOKIE_SAMESITE = "Lax" # Match session cookie samesite
+CSRF_COOKIE_SECURE = not DEBUG # True in production (HTTPS), False in local dev (HTTP)
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
